@@ -29,26 +29,10 @@ const Footer = () => {
                 <li><a href="#" className="hover:text-white transition-colors">Contact Us</a></li>
                 <li><a href="#" className="hover:text-white transition-colors">Community</a></li>
               </ul>
-            </div>
-            <div>
-              <h4 className="font-semibold mb-4">Newsletter</h4>
-              <p className="text-stone-400 mb-4">
-                Stay updated on new sustainable businesses.
-              </p>
-              <div className="flex gap-2">
-                <input 
-                  type="email" 
-                  placeholder="Enter email"
-                  className="flex-1 px-3 py-2 bg-stone-700 rounded-lg text-white placeholder-stone-400 focus:outline-none focus:ring-2 focus:ring-rose-300"
-                />
-                <button className="px-4 py-2 bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors">
-                  Subscribe
-                </button>
-              </div>
-            </div>
-          </div>
+            </div>            
           <div className="border-t border-stone-700 mt-8 pt-8 text-center text-stone-400">
-            <p>&copy; 2025 EcoLocal. All rights reserved.</p>
+            <p>&copy; 2025 HomeGrown.</p>
+            </div>
           </div>
         </div>
       </footer>

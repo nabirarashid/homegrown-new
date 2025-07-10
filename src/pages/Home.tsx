@@ -1,8 +1,12 @@
 import React from 'react';
 import { ArrowRight, Heart, Search, User } from 'lucide-react';
 import AddBusinessSection from '../components/AddBusinessSection';
+import { useNavigate } from 'react-router-dom';
 
 const Home = () => {
+
+  const navigate = useNavigate();
+
   const featuredBusinesses = [
     {
       id: 1,
@@ -53,7 +57,7 @@ const Home = () => {
         <p className="text-lg mb-8 opacity-90">
           Find hidden gems and support your community. Explore unique shops, restaurants, and services nearby.
         </p>
-        <button className="px-8 py-3 bg-rose-600 text-white rounded-full font-semibold hover:bg-rose-700 transition-colors">
+        <button onClick={() => navigate("/scroll")} className="px-8 py-3 bg-rose-600 text-white rounded-full font-semibold hover:bg-rose-700 transition-colors">
           Get Started
         </button>
       </div>
