@@ -133,8 +133,8 @@ const SwipeableBusinessDiscovery = () => {
   ];
 
   const currentBusiness = allBusinesses[currentIndex];
-
-  const handleSwipe = (direction) => {
+  
+const handleSwipe = (direction) => {
     if (isAnimating) return;
     
     setIsAnimating(true);
@@ -154,29 +154,29 @@ const SwipeableBusinessDiscovery = () => {
   };
 
   const handleTouchStart = (e) => {
-    setTouchStart(e.targetTouches[0].clientY);
+    setTouchStart(e.targetTouches[0].clientX);
   };
 
   const handleTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientY);
+    setTouchEnd(e.targetTouches[0].clientX);
   };
 
-  const handleTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchStart - touchEnd;
-    const isUpSwipe = distance > 50;
-    const isDownSwipe = distance < -50;
-    
-    if (isUpSwipe) {
-      handleSwipe('like');
-    } else if (isDownSwipe) {
-      handleSwipe('dislike');
-    }
-    
-    setTouchStart(0);
-    setTouchEnd(0);
-  };
+const handleTouchEnd = () => {
+  if (!touchStart || !touchEnd) return;
+  
+  const distance = touchStart - touchEnd;
+  const isLeftSwipe = distance > 50;
+  const isRightSwipe = distance < -50;
+  
+  if (isLeftSwipe) {
+    handleSwipe('dislike');     // Left swipe = like
+  } else if (isRightSwipe) {
+    handleSwipe('like');  // Right swipe = dislike
+  }
+  
+  setTouchStart(0);
+  setTouchEnd(0);
+};
 
   const getCategoryColor = (category) => {
     switch (category) {
@@ -214,7 +214,7 @@ const SwipeableBusinessDiscovery = () => {
         {/* Instructions */}
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full">
           <p className="text-sm text-stone-600 text-center">
-            ↑ Swipe up to like • ↓ Swipe down to pass
+            ← Swipe left to dislike • Swipe right to like →
           </p>
         </div>
 
@@ -222,13 +222,13 @@ const SwipeableBusinessDiscovery = () => {
         <div 
           ref={containerRef}
           className={`absolute inset-4 transition-all duration-300 ${
-            swipeDirection === 'like' ? 'transform -translate-y-full opacity-0' :
-            swipeDirection === 'dislike' ? 'transform translate-y-full opacity-0' : ''
+            swipeDirection === 'like' ? 'transform translate-x-full opacity-0' :
+            swipeDirection === 'dislike' ? 'transform -translate-x-full opacity-0' : ''
           }`}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-        >
+    >
           <div className="relative w-full h-full bg-white rounded-3xl shadow-2xl overflow-hidden">
             {/* Business Image */}
             <div className="relative h-1/2 overflow-hidden">
@@ -319,7 +319,7 @@ const SwipeableBusinessDiscovery = () => {
             <div 
               key={index}
               className={`w-2 h-2 rounded-full transition-all ${
-                index === currentIndex ? 'bg-rose-500' : 
+                index === currentIndex ? 'bg-yellow-500' : 
                 index < currentIndex ? 'bg-green-500' : 'bg-stone-300'
               }`}
             />
