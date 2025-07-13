@@ -1,12 +1,20 @@
-import { auth, provider } from "../firebase";
+import { auth, provider, db } from "../firebase";
 import { signInWithPopup } from "firebase/auth";
+import { doc, setDoc, getDoc } from "firebase/firestore";
 import { useState } from "react";
 
-export default function Login() {
+interface LoginProps {
+  requiredRole?: 'business' | 'customer';
+  onLoginSuccess?: (user: any, role: string) => void;
+}
+
+export default function Login({ requiredRole, onLoginSuccess }: LoginProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showRoleSelection, setShowRoleSelection] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<'business' | 'customer'>('customer');
 
-  const login = async () => {
+  const login = async (role?: 'business' | 'customer') => {
     setLoading(true);
     setError(null);
 
@@ -17,8 +25,42 @@ export default function Login() {
       });
 
       const result = await signInWithPopup(auth, provider);
-      console.log("👤 Logged in as:", result.user.displayName);
+      const user = result.user;
+      
+      // Check if user already has a role
+      const userDoc = await getDoc(doc(db, "users", user.uid));
+      let userRole = role || selectedRole;
+      
+      if (userDoc.exists()) {
+        const userData = userDoc.data();
+        userRole = userData.role;
+        
+        // If requiredRole is specified and user doesn't have it, show error
+        if (requiredRole && userData.role !== requiredRole) {
+          setError(`This feature is only available for ${requiredRole} accounts. You are signed in as a ${userData.role}.`);
+          await auth.signOut();
+          return;
+        }
+      } else {
+        // New user - set their role
+        await setDoc(doc(db, "users", user.uid), {
+          uid: user.uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          role: userRole,
+          createdAt: new Date(),
+          preferences: userRole === 'customer' ? { tags: [] } : {},
+        });
+      }
+
+      console.log(`👤 Logged in as: ${user.displayName} (${userRole})`);
       console.log("✅ Login successful!");
+      
+      if (onLoginSuccess) {
+        onLoginSuccess(user, userRole);
+      }
+      
     } catch (err: unknown) {
       console.error("❌ Login failed", err);
 
@@ -40,10 +82,80 @@ export default function Login() {
     }
   };
 
+  const handleRoleSelection = (role: 'business' | 'customer') => {
+    setSelectedRole(role);
+    setShowRoleSelection(false);
+    login(role);
+  };
+
+  if (showRoleSelection) {
+    return (
+      <div className="flex flex-col items-center gap-6 p-6">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Choose Your Account Type</h3>
+          <p className="text-sm text-gray-600">This will determine what features you can access</p>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-md">
+          <button
+            onClick={() => handleRoleSelection('customer')}
+            className="p-4 border-2 border-gray-200 rounded-lg hover:border-rose-500 hover:bg-rose-50 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <h4 className="font-medium text-gray-900">Customer</h4>
+            </div>
+            <p className="text-sm text-gray-600">Browse businesses, get recommendations, save favorites</p>
+          </button>
+          
+          <button
+            onClick={() => handleRoleSelection('business')}
+            className="p-4 border-2 border-gray-200 rounded-lg hover:border-rose-500 hover:bg-rose-50 transition-colors text-left"
+          >
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-4m-5 0H9m0 0H5m4 0v-2a2 2 0 00-2-2H5a2 2 0 00-2 2v2m0 0h4" />
+                </svg>
+              </div>
+              <h4 className="font-medium text-gray-900">Business</h4>
+            </div>
+            <p className="text-sm text-gray-600">Add your business, manage products, reach customers</p>
+          </button>
+        </div>
+        
+        <button
+          onClick={() => setShowRoleSelection(false)}
+          className="text-sm text-gray-500 hover:text-gray-700"
+        >
+          Back
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col items-center gap-4 p-6">
+      {requiredRole && (
+        <div className="text-center mb-2">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            {requiredRole === 'business' ? 'Business Owner Login' : 'Customer Login'}
+          </h3>
+          <p className="text-gray-600">
+            {requiredRole === 'business' 
+              ? 'Sign in to manage your business and products'
+              : 'Sign in to save favorites and get personalized recommendations'
+            }
+          </p>
+        </div>
+      )}
+      
       <button
-        onClick={login}
+        onClick={() => requiredRole ? login(requiredRole) : setShowRoleSelection(true)}
         disabled={loading}
         className="flex items-center gap-3 px-6 py-3 bg-white border border-gray-300 rounded-lg shadow-sm hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
