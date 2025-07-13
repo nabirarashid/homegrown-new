@@ -128,7 +128,7 @@ const Mapping = () => {
         {/* Map Container */}
         <div className="relative bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden mb-8 mx-4">
           {/* Search Bar Overlay */}
-          <div className="absolute top-6 left-6 right-6 z-10">
+          <div className="absolute top-6 left-6 right-6 z-20">
             <div className="flex items-center bg-white rounded-lg shadow-md border border-gray-100">
               <div className="flex items-center justify-center pl-4 text-gray-600">
                 <Search size={20} />
@@ -144,7 +144,7 @@ const Mapping = () => {
           </div>
 
           {/* Map Controls */}
-          <div className="absolute top-20 right-6 z-10 flex flex-col gap-2">
+          <div className="absolute top-20 right-6 z-20 flex flex-col gap-2">
             <div className="flex flex-col">
               <button
                 onClick={handleZoomIn}
@@ -170,7 +170,7 @@ const Mapping = () => {
           {/* Map */}
           <div
             ref={mapRef}
-            className="w-full h-96 bg-gray-100"
+            className="w-full h-96 bg-gray-100 z-0"
           />
         </div>
 
