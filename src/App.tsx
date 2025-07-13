@@ -13,7 +13,6 @@ import Header from './components/Header'
 import Scroll from './pages/Scroll'
 
 function App() {
-
   return (
     <Router>
       <Header />
