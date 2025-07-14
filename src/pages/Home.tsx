@@ -1,5 +1,4 @@
 import React from 'react';
-import { ArrowRight, Heart, Search, User } from 'lucide-react';
 import AddBusinessSection from '../components/AddBusinessSection';
 import { useNavigate } from 'react-router-dom';
 
