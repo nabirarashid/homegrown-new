@@ -74,11 +74,6 @@ const Scroll = () => {
       });
     }
 
-<<<<<<< HEAD
-  const currentBusiness = allBusinesses[currentIndex];
-  
-const handleSwipe = (direction) => {
-=======
     console.log(
       `✅ Updated liked data for ${uid}:`,
       productName,
@@ -88,7 +83,6 @@ const handleSwipe = (direction) => {
   };
 
   const handleSwipe = (direction: string) => {
->>>>>>> 97c61029a10bbad078ce37cbf1faa301247a2b60
     if (isAnimating) return;
 
     setIsAnimating(true);
@@ -108,57 +102,30 @@ const handleSwipe = (direction) => {
     }, 300);
   };
 
-<<<<<<< HEAD
-  const handleTouchStart = (e) => {
+  const handleTouchStart = (e: React.TouchEvent) => {
     setTouchStart(e.targetTouches[0].clientX);
   };
 
-  const handleTouchMove = (e) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
-
-const handleTouchEnd = () => {
-  if (!touchStart || !touchEnd) return;
-  
-  const distance = touchStart - touchEnd;
-  const isLeftSwipe = distance > 50;
-  const isRightSwipe = distance < -50;
-  
-  if (isLeftSwipe) {
-    handleSwipe('dislike');     // Left swipe = like
-  } else if (isRightSwipe) {
-    handleSwipe('like');  // Right swipe = dislike
-  }
-  
-  setTouchStart(0);
-  setTouchEnd(0);
-};
-=======
-  const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientY);
-  };
-
   const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientY);
+    setTouchEnd(e.targetTouches[0].clientX);
   };
 
   const handleTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
 
     const distance = touchStart - touchEnd;
-    const isUpSwipe = distance > 50;
-    const isDownSwipe = distance < -50;
+    const isRightSwipe = distance > 50;
+    const isLeftSwipe = distance < -50;
 
-    if (isUpSwipe) {
+    if (isRightSwipe) {
       handleSwipe("like");
-    } else if (isDownSwipe) {
+    } else if (isLeftSwipe) {
       handleSwipe("dislike");
     }
 
     setTouchStart(0);
     setTouchEnd(0);
   };
->>>>>>> 97c61029a10bbad078ce37cbf1faa301247a2b60
 
   const getCategoryColor = (category: string) => {
     switch (category) {
@@ -180,7 +147,7 @@ const handleTouchEnd = () => {
         {/* Instructions */}
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full">
           <p className="text-sm text-stone-600 text-center">
-            ← Swipe left to dislike • Swipe right to like →
+            ↑ Swipe left to pass • ↓ Swipe right to like
           </p>
         </div>
 
@@ -188,21 +155,16 @@ const handleTouchEnd = () => {
         <div
           ref={containerRef}
           className={`absolute inset-4 transition-all duration-300 ${
-<<<<<<< HEAD
-            swipeDirection === 'like' ? 'transform translate-x-full opacity-0' :
-            swipeDirection === 'dislike' ? 'transform -translate-x-full opacity-0' : ''
-=======
             swipeDirection === "like"
-              ? "transform -translate-y-full opacity-0"
+              ? "transform -translate-x-full opacity-0"
               : swipeDirection === "dislike"
-              ? "transform translate-y-full opacity-0"
+              ? "transform translate-x-full opacity-0"
               : ""
->>>>>>> 97c61029a10bbad078ce37cbf1faa301247a2b60
           }`}
           onTouchStart={handleTouchStart}
           onTouchMove={handleTouchMove}
           onTouchEnd={handleTouchEnd}
-    >
+        >
           <div className="relative w-full h-full bg-white rounded-3xl shadow-2xl overflow-hidden">
             {/* Business Image */}
             <div className="relative h-1/2 overflow-hidden">
@@ -327,16 +289,11 @@ const handleTouchEnd = () => {
             <div
               key={index}
               className={`w-2 h-2 rounded-full transition-all ${
-<<<<<<< HEAD
-                index === currentIndex ? 'bg-yellow-500' : 
-                index < currentIndex ? 'bg-green-500' : 'bg-stone-300'
-=======
                 index === currentIndex
                   ? "bg-rose-500"
                   : index < currentIndex
                   ? "bg-green-500"
                   : "bg-stone-300"
->>>>>>> 97c61029a10bbad078ce37cbf1faa301247a2b60
               }`}
             />
           ))}
