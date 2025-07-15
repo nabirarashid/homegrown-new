@@ -156,9 +156,9 @@ const Scroll = () => {
           ref={containerRef}
           className={`absolute inset-4 transition-all duration-300 ${
             swipeDirection === "like"
-              ? "transform -translate-x-full opacity-0"
-              : swipeDirection === "dislike"
               ? "transform translate-x-full opacity-0"
+              : swipeDirection === "dislike"
+              ? "transform -translate-x-full opacity-0"
               : ""
           }`}
           onTouchStart={handleTouchStart}
