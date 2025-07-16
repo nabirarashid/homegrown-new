@@ -1,6 +1,12 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  useMemo,
+  useCallback,
+} from "react";
 import { Heart, X, MapPin, Clock, Phone, Globe } from "lucide-react";
-import { db, auth } from "../firebase"; // adjust path if needed
+import { db, auth } from "../firebase";
 import {
   doc,
   getDoc,
@@ -10,30 +16,290 @@ import {
   getDocs,
   collection,
 } from "firebase/firestore";
+import { getUserLocation, getDistanceString } from "../utils/locationService";
+import LocationPermission from "../components/LocationPermission";
+
+// Distance display component
+const DistanceDisplay: React.FC<{
+  location: { lat: number; lng: number };
+  userLocation: { lat: number; lng: number } | null;
+}> = ({ location, userLocation }) => {
+  const [distance, setDistance] = useState<string>("...");
+
+  useEffect(() => {
+    const calculateDistance = async () => {
+      try {
+        if (userLocation) {
+          const distanceString = await getDistanceString(
+            location,
+            userLocation
+          );
+          setDistance(distanceString);
+        } else {
+          setDistance("Location needed");
+        }
+      } catch (error) {
+        setDistance("Distance N/A");
+      }
+    };
+
+    calculateDistance();
+  }, [location, userLocation]);
+
+  return <span>{distance}</span>;
+};
+
+// Business interface for better type safety
+interface Business {
+  id: string;
+  productName: string;
+  businessName: string;
+  productImage?: string;
+  description?: string;
+  category?: string;
+  productPrice?: number;
+  tags?: string[];
+  location?: {
+    lat: number;
+    lng: number;
+    address?: string;
+  };
+  hours?: string;
+  phone?: string;
+  website?: string;
+}
+
+// Memoized image component for better performance
+const BusinessImage = React.memo(
+  ({
+    src,
+    alt,
+    className,
+  }: {
+    src: string;
+    alt: string;
+    className: string;
+  }) => {
+    const [isLoaded, setIsLoaded] = useState(false);
+    const [error, setError] = useState(false);
+
+    return (
+      <div className={`relative ${className}`}>
+        {!isLoaded && !error && (
+          <div className="absolute inset-0 bg-gray-200 animate-pulse flex items-center justify-center">
+            <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        )}
+        <img
+          src={
+            error ? "https://via.placeholder.com/400x300?text=No+Image" : src
+          }
+          alt={alt}
+          className={`${className} transition-opacity duration-300 ${
+            isLoaded ? "opacity-100" : "opacity-0"
+          }`}
+          onLoad={() => setIsLoaded(true)}
+          onError={() => setError(true)}
+          loading="lazy"
+        />
+      </div>
+    );
+  }
+);
 
 const Scroll = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [likedBusinesses, setLikedBusinesses] = useState<unknown[]>([]);
-  const [rejectedBusinesses, setRejectedBusinesses] = useState<unknown[]>([]);
+  const [likedBusinesses, setLikedBusinesses] = useState<Business[]>([]);
   const [swipeDirection, setSwipeDirection] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [allBusinesses, setAllBusinesses] = useState<unknown[]>([]);
+  const [allBusinesses, setAllBusinesses] = useState<Business[]>([]);
+  const [userLocation, setUserLocation] = useState<{
+    lat: number;
+    lng: number;
+  } | null>(null);
+  const [locationPermission, setLocationPermission] = useState<
+    "granted" | "denied" | "prompt"
+  >("prompt");
+  const [swipeHistory, setSwipeHistory] = useState<{
+    liked: { business: Business; tags: string[]; timestamp: Date }[];
+    rejected: { business: Business; tags: string[]; timestamp: Date }[];
+  }>({
+    liked: [],
+    rejected: [],
+  });
   const containerRef = useRef<HTMLDivElement>(null);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
 
+  // Preload next images for smoother experience
+  useEffect(() => {
+    const preloadImages = () => {
+      const nextIndex = (currentIndex + 1) % allBusinesses.length;
+      const nextBusiness = allBusinesses[nextIndex];
+      if (nextBusiness?.productImage) {
+        const img = new Image();
+        img.src = nextBusiness.productImage;
+      }
+    };
+    preloadImages();
+  }, [currentIndex, allBusinesses]);
+
+  // Get user location on component mount
+  useEffect(() => {
+    const requestLocation = async () => {
+      try {
+        const location = await getUserLocation();
+        setUserLocation(location);
+        setLocationPermission("granted");
+      } catch (error) {
+        console.error("Error getting user location:", error);
+        setLocationPermission("denied");
+      }
+    };
+
+    requestLocation();
+  }, []);
+
   useEffect(() => {
     const fetchBusinesses = async () => {
-      const snapshot = await getDocs(collection(db, "products"));
-      const fetched = snapshot.docs.map((doc) => doc.data());
-      setAllBusinesses(fetched);
+      try {
+        const snapshot = await getDocs(collection(db, "products"));
+        const fetched = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        })) as Business[];
+        setAllBusinesses(fetched);
+      } catch (error) {
+        console.error("Error fetching businesses:", error);
+      }
     };
 
     fetchBusinesses();
   }, []);
 
-  const currentBusiness = allBusinesses[currentIndex] as any;
+  const currentBusiness = allBusinesses[currentIndex];
+
+  const updateLikedBusiness = useCallback(async (business: Business) => {
+    const user = auth.currentUser;
+    if (!user) return;
+
+    const uid = user.uid;
+    const userRef = doc(db, "users", uid);
+    const productName = business.productName;
+    const businessName = business.businessName;
+    const businessTags = business.tags || [];
+
+    try {
+      const docSnap = await getDoc(userRef);
+
+      if (!docSnap.exists()) {
+        // Create new user document with liked data
+        await setDoc(userRef, {
+          uid: uid,
+          email: user.email,
+          displayName: user.displayName,
+          photoURL: user.photoURL,
+          role: null, // Will be set during role selection
+          likedProducts: [productName],
+          likedBusinesses: [businessName],
+          likedTags: businessTags,
+          preferences: {
+            tags: businessTags,
+          },
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+      } else {
+        // Update existing user document
+        const existingData = docSnap.data();
+        const currentLikedTags = existingData.likedTags || [];
+        const currentPreferenceTags = existingData.preferences?.tags || [];
+
+        // Merge new tags with existing ones (avoiding duplicates)
+        const updatedLikedTags = [
+          ...new Set([...currentLikedTags, ...businessTags]),
+        ];
+        const updatedPreferenceTags = [
+          ...new Set([...currentPreferenceTags, ...businessTags]),
+        ];
+
+        await updateDoc(userRef, {
+          likedProducts: arrayUnion(productName),
+          likedBusinesses: arrayUnion(businessName),
+          likedTags: updatedLikedTags,
+          preferences: {
+            ...existingData.preferences,
+            tags: updatedPreferenceTags,
+          },
+          updatedAt: new Date(),
+        });
+      }
+
+      console.log(
+        `✅ Updated user preferences for ${uid}:`,
+        productName,
+        businessName,
+        businessTags
+      );
+    } catch (error) {
+      console.error("❌ Error updating user preferences:", error);
+    }
+  }, []);
+
+  const handleSwipe = useCallback(
+    (direction: string) => {
+      if (isAnimating) return;
+
+      setIsAnimating(true);
+      setSwipeDirection(direction);
+
+      const businessTags = currentBusiness?.tags || [];
+      const timestamp = new Date();
+
+      setTimeout(() => {
+        if (direction === "like") {
+          setLikedBusinesses((prev) => [...prev, currentBusiness]);
+          setSwipeHistory((prev) => ({
+            ...prev,
+            liked: [
+              ...prev.liked,
+              { business: currentBusiness, tags: businessTags, timestamp },
+            ],
+          }));
+          updateLikedBusiness(currentBusiness);
+        } else {
+          setSwipeHistory((prev) => ({
+            ...prev,
+            rejected: [
+              ...prev.rejected,
+              { business: currentBusiness, tags: businessTags, timestamp },
+            ],
+          }));
+        }
+
+        setCurrentIndex((prev) => (prev + 1) % allBusinesses.length);
+        setSwipeDirection(null);
+        setIsAnimating(false);
+      }, 300);
+    },
+    [isAnimating, currentBusiness, allBusinesses.length, updateLikedBusiness]
+  );
+
+  // Get user's preference tags from swipe history
+  const getUserPreferenceTags = useMemo(() => {
+    const tagCounts: { [key: string]: number } = {};
+
+    swipeHistory.liked.forEach(({ tags }) => {
+      tags.forEach((tag) => {
+        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
+      });
+    });
+
+    return Object.entries(tagCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 10)
+      .map(([tag]) => tag);
+  }, [swipeHistory.liked]);
 
   // Don't render anything if no businesses are loaded yet
   if (!allBusinesses.length || !currentBusiness) {
@@ -47,79 +313,24 @@ const Scroll = () => {
     );
   }
 
-  const updateLikedBusiness = async (business: any) => {
-    const user = auth.currentUser;
-    if (!user) return;
-
-    const uid = user.uid;
-    const customerRef = doc(db, "customers", uid);
-    const productName = business.productName;
-    const businessName = business.businessName;
-    const businessTags = business.tags || [];
-
-    const docSnap = await getDoc(customerRef);
-
-    if (!docSnap.exists()) {
-      await setDoc(customerRef, {
-        likedProducts: [productName],
-        likedBusinesses: [businessName],
-        likedTags: businessTags,
-        createdAt: new Date(),
-      });
-    } else {
-      await updateDoc(customerRef, {
-        likedProducts: arrayUnion(productName),
-        likedBusinesses: arrayUnion(businessName),
-        likedTags: arrayUnion(...businessTags),
-      });
-    }
-
-    console.log(
-      `✅ Updated liked data for ${uid}:`,
-      productName,
-      businessName,
-      businessTags
-    );
-  };
-
-  const handleSwipe = (direction: string) => {
-    if (isAnimating) return;
-
-    setIsAnimating(true);
-    setSwipeDirection(direction);
-
-    setTimeout(() => {
-      if (direction === "like") {
-        setLikedBusinesses((prev) => [...prev, currentBusiness]);
-        updateLikedBusiness(currentBusiness);
-      } else {
-        setRejectedBusinesses((prev) => [...prev, currentBusiness]);
-      }
-
-      setCurrentIndex((prev) => (prev + 1) % allBusinesses.length);
-      setSwipeDirection(null);
-      setIsAnimating(false);
-    }, 300);
-  };
-
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientY);
+    setTouchStart(e.targetTouches[0].clientX); // Changed from clientY to clientX
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientY);
+    setTouchEnd(e.targetTouches[0].clientX); // Changed from clientY to clientX
   };
 
   const handleTouchEnd = () => {
     if (!touchStart || !touchEnd) return;
 
     const distance = touchStart - touchEnd;
-    const isUpSwipe = distance > 50;
-    const isDownSwipe = distance < -50;
+    const isLeftSwipe = distance > 50; // Swipe left = dislike
+    const isRightSwipe = distance < -50; // Swipe right = like
 
-    if (isUpSwipe) {
+    if (isRightSwipe) {
       handleSwipe("like");
-    } else if (isDownSwipe) {
+    } else if (isLeftSwipe) {
       handleSwipe("dislike");
     }
 
@@ -142,12 +353,27 @@ const Scroll = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 to-stone-100">
+      {/* Location Permission Banner */}
+      <div className="p-4">
+        {locationPermission === "prompt" && (
+          <LocationPermission
+            onLocationGranted={(location) => {
+              setUserLocation(location);
+              setLocationPermission("granted");
+            }}
+            onLocationDenied={() => {
+              setLocationPermission("denied");
+            }}
+          />
+        )}
+      </div>
+
       {/* Main Swipe Area */}
       <div className="relative h-[calc(100vh-80px)] overflow-hidden">
         {/* Instructions */}
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-10 bg-white/90 backdrop-blur-sm px-4 py-2 rounded-full">
           <p className="text-sm text-stone-600 text-center">
-            ↑ Swipe up to like • ↓ Swipe down to pass
+            ← Swipe left to pass • Swipe right to like →
           </p>
         </div>
 
@@ -156,9 +382,9 @@ const Scroll = () => {
           ref={containerRef}
           className={`absolute inset-4 transition-all duration-300 ${
             swipeDirection === "like"
-              ? "transform -translate-y-full opacity-0"
+              ? "transform translate-x-full opacity-0"
               : swipeDirection === "dislike"
-              ? "transform translate-y-full opacity-0"
+              ? "transform -translate-x-full opacity-0"
               : ""
           }`}
           onTouchStart={handleTouchStart}
@@ -168,7 +394,7 @@ const Scroll = () => {
           <div className="relative w-full h-full bg-white rounded-3xl shadow-2xl overflow-hidden">
             {/* Business Image */}
             <div className="relative h-1/2 overflow-hidden">
-              <img
+              <BusinessImage
                 src={
                   currentBusiness?.productImage ||
                   "https://via.placeholder.com/400x300?text=No+Image"
@@ -211,10 +437,13 @@ const Scroll = () => {
                 </h3>
 
                 <div className="flex items-center gap-4 mb-4 text-sm text-stone-600">
-                  {currentBusiness?.distance && (
+                  {currentBusiness?.location && (
                     <div className="flex items-center gap-1">
                       <MapPin className="w-4 h-4" />
-                      {currentBusiness.distance}
+                      <DistanceDisplay
+                        location={currentBusiness.location}
+                        userLocation={userLocation}
+                      />
                     </div>
                   )}
                   {currentBusiness?.hours && (
@@ -298,6 +527,33 @@ const Scroll = () => {
             />
           ))}
         </div>
+      </div>
+
+      {/* Swipe Statistics */}
+      <div className="fixed top-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg text-xs">
+        <div className="flex items-center gap-2 text-green-600 mb-1">
+          <Heart className="w-3 h-3 fill-current" />
+          <span>Liked: {swipeHistory.liked.length}</span>
+        </div>
+        <div className="flex items-center gap-2 text-red-600 mb-1">
+          <X className="w-3 h-3" />
+          <span>Passed: {swipeHistory.rejected.length}</span>
+        </div>
+        {getUserPreferenceTags.length > 0 && (
+          <div className="mt-2 pt-2 border-t">
+            <p className="text-gray-600 mb-1">Top tags:</p>
+            <div className="flex flex-wrap gap-1">
+              {getUserPreferenceTags.slice(0, 3).map((tag, index) => (
+                <span
+                  key={index}
+                  className="px-1 py-0.5 bg-rose-100 text-rose-700 rounded text-xs"
+                >
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Liked Businesses Counter */}

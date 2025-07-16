@@ -13,7 +13,7 @@ const firebaseConfig = {
   storageBucket: "homegrown-backend.firebasestorage.app",
   messagingSenderId: "1045921702088",
   appId: "1:1045921702088:web:9438417834f6b63644c5fd",
-  measurementId: "G-T0K7BSJB4M",
+  measurementId: "G-T0K7BSJB4M"
 };
 
 // export auth and provider
