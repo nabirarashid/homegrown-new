@@ -1,50 +1,47 @@
-import React from 'react';
-import AddBusinessSection from '../components/AddBusinessSection';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { ArrowRight, Sparkles } from "lucide-react";
+import { db } from "../firebase";
+import { collection, getDocs, limit, query } from "firebase/firestore";
 
 const Home = () => {
-
   const navigate = useNavigate();
+  const [featuredBusinesses, setFeaturedBusinesses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const featuredBusinesses = [
-    {
-      id: 1,
-      name: "The Cozy Corner Cafe",
-      description: "A charming cafe with delicious pastries and coffee.",
-      image: "https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=400&h=400&fit=crop"
-    },
-    {
-      id: 2,
-      name: "Pages & Prose Bookstore",
-      description: "A haven for book lovers with a wide selection of genres.",
-      image: "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=400&fit=crop"
-    },
-    {
-      id: 3,
-      name: "Crafted Creations",
-      description: "Unique handmade crafts and gifts from local artists.",
-      image: "https://images.unsplash.com/photo-1452860606245-08befc0ff44b?w=400&h=400&fit=crop"
-    }
-  ];
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch featured businesses
+        const businessesSnapshot = await getDocs(
+          query(collection(db, "businesses"), limit(6))
+        );
+        const businessesData = businessesSnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setFeaturedBusinesses(businessesData);
 
-  const categories = [
-    {
-      name: "Restaurants",
-      image: "https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&h=400&fit=crop"
-    },
-    {
-      name: "Retail",
-      image: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?w=400&h=400&fit=crop"
-    },
-    {
-      name: "Services",
-      image: "https://images.unsplash.com/photo-1521791136064-7986c2920216?w=400&h=400&fit=crop"
-    },
-    {
-      name: "Entertainment",
-      image: "https://images.unsplash.com/photo-1489599363714-43c6b98b9c41?w=400&h=400&fit=crop"
-    }
-  ];
+        setLoading(false);
+      } catch (error) {
+        console.error("Error fetching data:", error);
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-rose-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   const HeroSection = () => (
     <section className="relative h-96 bg-gradient-to-r from-rose-600 to-pink-600 flex items-center justify-center text-center text-white rounded-xl mx-4 mb-8">
@@ -54,9 +51,13 @@ const Home = () => {
           Discover the best local businesses
         </h2>
         <p className="text-lg mb-8 opacity-90">
-          Find hidden gems and support your community. Explore unique shops, restaurants, and services nearby.
+          Find hidden gems and support your community. Explore unique shops,
+          restaurants, and services nearby.
         </p>
-        <button onClick={() => navigate("/scroll")} className="px-8 py-3 bg-rose-600 text-white rounded-full font-semibold hover:bg-rose-700 transition-colors">
+        <button
+          onClick={() => navigate("/scroll")}
+          className="px-8 py-3 bg-rose-600 text-white rounded-full font-semibold hover:bg-rose-700 transition-colors"
+        >
           Get Started
         </button>
       </div>
@@ -65,18 +66,40 @@ const Home = () => {
 
   const FeaturedBusinesses = () => (
     <section className="mb-12">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6 px-4">Featured Businesses</h2>
+      <h2 className="text-2xl font-bold text-gray-900 mb-6 px-4">
+        Featured Businesses
+      </h2>
       <div className="flex gap-4 overflow-x-auto pb-4 px-4">
-        {featuredBusinesses.map((business) => (
-          <div key={business.id} className="flex-shrink-0 w-64 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-            <img 
-              src={business.image} 
-              alt={business.name}
+        {featuredBusinesses.map((business: any) => (
+          <div
+            key={business.id}
+            className="flex-shrink-0 w-64 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+          >
+            <img
+              src={
+                business.image ||
+                "https://via.placeholder.com/400x300?text=Business"
+              }
+              alt={business.businessName}
               className="w-full h-48 object-cover rounded-t-lg"
             />
             <div className="p-4">
-              <h3 className="font-semibold text-gray-900 mb-2">{business.name}</h3>
+              <h3 className="font-semibold text-gray-900 mb-2">
+                {business.businessName}
+              </h3>
               <p className="text-sm text-gray-600">{business.description}</p>
+              <div className="mt-2 flex flex-wrap gap-1">
+                {business.tags
+                  ?.slice(0, 3)
+                  .map((tag: string, index: number) => (
+                    <span
+                      key={index}
+                      className="px-2 py-1 bg-rose-100 text-rose-700 rounded-full text-xs"
+                    >
+                      {tag}
+                    </span>
+                  ))}
+              </div>
             </div>
           </div>
         ))}
@@ -84,31 +107,34 @@ const Home = () => {
     </section>
   );
 
-  const Categories = () => (
+  const ReadyToScroll = () => (
     <section className="mb-12">
-      <h2 className="text-2xl font-bold text-gray-900 mb-6 px-4">Categories</h2>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 px-4">
-        {categories.map((category) => (
-          <div key={category.name} className="group cursor-pointer">
-            <img 
-              src={category.image} 
-              alt={category.name}
-              className="w-full aspect-square object-cover rounded-lg group-hover:shadow-md transition-shadow"
-            />
-            <p className="mt-3 font-medium text-gray-900 text-center">{category.name}</p>
-          </div>
-        ))}
+      <div className="mx-4 bg-rose-700 rounded-2xl p-8 text-white text-center">
+        <div className="flex justify-center mb-4">
+          <Sparkles size={48} className="text-white opacity-80" />
+        </div>
+        <h2 className="text-3xl font-bold mb-4">Ready to Scroll?</h2>
+        <p className="text-lg mb-6 opacity-90">
+          Discover amazing local businesses by swiping through our curated
+          selection
+        </p>
+        <button
+          onClick={() => navigate("/scroll")}
+          className="bg-white text-rose-800 font-semibold px-8 py-3 rounded-full hover:bg-gray-100 transition-colors text-lg inline-flex items-center gap-2"
+        >
+          Start Scrolling
+          <ArrowRight size={20} />
+        </button>
       </div>
     </section>
   );
 
   return (
-    <div className="min-h-screen bg-rose-50 font-sans">      
+    <div className="min-h-screen bg-rose-50 font-sans">
       <main className="max-w-6xl mx-auto py-8">
         <HeroSection />
         <FeaturedBusinesses />
-        <Categories />
-        <AddBusinessSection />
+        <ReadyToScroll />
       </main>
     </div>
   );
