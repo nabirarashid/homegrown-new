@@ -17,7 +17,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   showBusinessForm = false,
-  requiredRole = "customer",
 }) => {
   const { user, loading, role } = useUserRole();
   const [isSigningOut, setIsSigningOut] = useState(false);

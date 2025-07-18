@@ -77,9 +77,6 @@ const Recommendations = () => {
   const [featuredBusiness, setFeaturedBusiness] = useState<Business | null>(
     null
   );
-  const [trendingBusiness, setTrendingBusiness] = useState<Business | null>(
-    null
-  );
   const [suggestions, setSuggestions] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
   const [userPreferences, setUserPreferences] =

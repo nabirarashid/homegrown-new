@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { auth, db } from "../firebase";
-import { doc, setDoc, updateDoc } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 
 interface BusinessFormProps {

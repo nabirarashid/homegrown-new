@@ -110,7 +110,6 @@ const BusinessImage = React.memo(
 const Scroll = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedBusinesses, setLikedBusinesses] = useState<Business[]>([]);
-  const [rejectedBusinesses, setRejectedBusinesses] = useState<Business[]>([]);
   const [swipeDirection, setSwipeDirection] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [allBusinesses, setAllBusinesses] = useState<Business[]>([]);
