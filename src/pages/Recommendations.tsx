@@ -169,10 +169,7 @@ const Recommendations = () => {
 
           // Set trending business from personalized recommendations
           if (topRecommendations.length > 1) {
-            setTrendingBusiness({
-              ...topRecommendations[1],
-              isSponsored: true,
-            });
+            // Could set additional featured content here if needed
           }
         } else {
           // Fallback to regular recommendations if no preferences
@@ -184,10 +181,7 @@ const Recommendations = () => {
           }
 
           if (allBusinesses.length > 1) {
-            setTrendingBusiness({
-              ...allBusinesses[1],
-              isSponsored: true,
-            });
+            // Could set additional featured content here if needed
           }
         }
 

@@ -267,7 +267,7 @@ const Scroll = () => {
           }));
           updateLikedBusiness(currentBusiness);
         } else {
-          setRejectedBusinesses((prev) => [...prev, currentBusiness]);
+          // Business was rejected, could track this in future if needed
           setSwipeHistory((prev) => ({
             ...prev,
             rejected: [
