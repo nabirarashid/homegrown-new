@@ -41,7 +41,6 @@ const Mapping: React.FC = () => {
     { id: "jewelry", name: "Jewelry Store", icon: "💍" },
     { id: "nailSalon", name: "Nail Salon", icon: "💅" },
     { id: "restaurant", name: "Restaurant", icon: "🍽️" },
-
   ];
 
   useEffect(() => {
@@ -238,7 +237,6 @@ const Mapping: React.FC = () => {
             >
               <span>{filter.icon}</span>
               <span>{filter.name}</span>
-         
             </button>
           ))}
         </div>
@@ -249,7 +247,7 @@ const Mapping: React.FC = () => {
         <div ref={mapRef} className="w-full h-full" />
 
         {/* Zoom Controls */}
-        <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="absolute top-4 right-4 bg-white rounded-lg shadow-lg overflow-hidden z-[1000]">
           <button
             onClick={handleZoomIn}
             className="block w-12 h-12 flex items-center justify-center hover:bg-gray-100 transition-colors border-b"

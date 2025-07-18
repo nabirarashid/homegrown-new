@@ -110,6 +110,7 @@ const BusinessImage = React.memo(
 const Scroll = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [likedBusinesses, setLikedBusinesses] = useState<Business[]>([]);
+  const [rejectedBusinesses, setRejectedBusinesses] = useState<Business[]>([]);
   const [swipeDirection, setSwipeDirection] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
   const [allBusinesses, setAllBusinesses] = useState<Business[]>([]);
@@ -193,13 +194,12 @@ const Scroll = () => {
       const docSnap = await getDoc(userRef);
 
       if (!docSnap.exists()) {
-        // Create new user document with liked data
+        // Create new user document
         await setDoc(userRef, {
           uid: uid,
           email: user.email,
           displayName: user.displayName,
           photoURL: user.photoURL,
-          role: null, // Will be set during role selection
           likedProducts: [productName],
           likedBusinesses: [businessName],
           likedTags: businessTags,
@@ -242,7 +242,7 @@ const Scroll = () => {
         businessTags
       );
     } catch (error) {
-      console.error("❌ Error updating user preferences:", error);
+      console.error("❌ Error updating customer preferences:", error);
     }
   }, []);
 
@@ -268,6 +268,7 @@ const Scroll = () => {
           }));
           updateLikedBusiness(currentBusiness);
         } else {
+          setRejectedBusinesses((prev) => [...prev, currentBusiness]);
           setSwipeHistory((prev) => ({
             ...prev,
             rejected: [

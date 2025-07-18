@@ -439,15 +439,6 @@ const Recommendations = () => {
 
         <section className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Trending businesses nearby
-          </h2>
-          {trendingBusiness && (
-            <BusinessCard business={trendingBusiness} layout="horizontal" />
-          )}
-        </section>
-
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
             You might also like
           </h2>
           <div className="flex gap-4 overflow-x-auto pb-4">

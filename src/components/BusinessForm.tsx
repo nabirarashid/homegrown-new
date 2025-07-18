@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { auth, db } from "../firebase";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, updateDoc } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
 
 interface BusinessFormProps {
@@ -11,35 +11,20 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
   const [user] = useAuthState(auth);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    businessName: "",
-    description: "",
-    category: "",
-    address: "",
-    phone: "",
-    website: "",
-    hours: "",
-    imageUrl: "",
-    tags: [] as string[],
-    location: {
-      lat: 0,
-      lng: 0,
-      address: "",
-    },
-  });
-
-  const [newTag, setNewTag] = useState("");
-  const [locationInput, setLocationInput] = useState({
-    lat: "",
-    lng: "",
-    address: "",
+    businessName: '',
+    description: '',
+    category: '',
+    address: '',
+    phone: '',
+    website: '',
+    hours: '',
   });
 
   const [productData, setProductData] = useState({
-    name: "",
-    description: "",
-    price: "",
-    category: "",
-    imageUrl: "",
+    name: '',
+    description: '',
+    price: '',
+    category: '',
     inStock: true,
   });
 
@@ -49,22 +34,12 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
 
     setLoading(true);
     try {
-      // Prepare business data with location
-      const businessData = {
+      // Update business document
+      await setDoc(doc(db, "businesses", user.uid), {
         ...formData,
-        location: {
-          lat: parseFloat(locationInput.lat) || 0,
-          lng: parseFloat(locationInput.lng) || 0,
-          address: locationInput.address || formData.address,
-        },
         uid: user.uid,
         updatedAt: new Date(),
-      };
-
-      // Update business document
-      await setDoc(doc(db, "businesses", user.uid), businessData, {
-        merge: true,
-      });
+      }, { merge: true });
 
       alert("Business information updated successfully!");
       onClose();
@@ -74,23 +49,6 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
     } finally {
       setLoading(false);
     }
-  };
-
-  const addTag = () => {
-    if (newTag.trim() && !formData.tags.includes(newTag.trim())) {
-      setFormData({
-        ...formData,
-        tags: [...formData.tags, newTag.trim()],
-      });
-      setNewTag("");
-    }
-  };
-
-  const removeTag = (tagToRemove: string) => {
-    setFormData({
-      ...formData,
-      tags: formData.tags.filter((tag) => tag !== tagToRemove),
-    });
   };
 
   const handleProductSubmit = async (e: React.FormEvent) => {
@@ -110,11 +68,10 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
 
       alert("Product added successfully!");
       setProductData({
-        name: "",
-        description: "",
-        price: "",
-        category: "",
-        imageUrl: "",
+        name: '',
+        description: '',
+        price: '',
+        category: '',
         inStock: true,
       });
     } catch (error) {
@@ -126,36 +83,44 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+    <div className="space-y-6">
       {/* Business Information Form */}
       <div>
         <h3 className="text-lg font-semibold mb-4">Business Information</h3>
         <form onSubmit={handleBusinessSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Business Name
-              </label>
-              <input
-                type="text"
-                value={formData.businessName}
-                onChange={(e) =>
-                  setFormData({ ...formData, businessName: e.target.value })
-                }
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                required
-              />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Business Name
+            </label>
+            <input
+              type="text"
+              value={formData.businessName}
+              onChange={(e) => setFormData({...formData, businessName: e.target.value})}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+              required
+            />
+          </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description
+            </label>
+            <textarea
+              value={formData.description}
+              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+              rows={3}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Category
               </label>
               <select
                 value={formData.category}
-                onChange={(e) =>
-                  setFormData({ ...formData, category: e.target.value })
-                }
+                onChange={(e) => setFormData({...formData, category: e.target.value})}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
               >
                 <option value="">Select category</option>
@@ -166,23 +131,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                 <option value="other">Other</option>
               </select>
             </div>
-          </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Description
-            </label>
-            <textarea
-              value={formData.description}
-              onChange={(e) =>
-                setFormData({ ...formData, description: e.target.value })
-              }
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-              rows={3}
-            />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Phone
@@ -190,25 +139,8 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
               <input
                 type="tel"
                 value={formData.phone}
-                onChange={(e) =>
-                  setFormData({ ...formData, phone: e.target.value })
-                }
+                onChange={(e) => setFormData({...formData, phone: e.target.value})}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Website
-              </label>
-              <input
-                type="url"
-                value={formData.website}
-                onChange={(e) =>
-                  setFormData({ ...formData, website: e.target.value })
-                }
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                placeholder="https://..."
               />
             </div>
           </div>
@@ -220,137 +152,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
             <input
               type="text"
               value={formData.address}
-              onChange={(e) =>
-                setFormData({ ...formData, address: e.target.value })
-              }
+              onChange={(e) => setFormData({...formData, address: e.target.value})}
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
             />
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Website
-              </label>
-              <input
-                type="url"
-                value={formData.website}
-                onChange={(e) =>
-                  setFormData({ ...formData, website: e.target.value })
-                }
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                placeholder="https://..."
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Hours
-              </label>
-              <input
-                type="text"
-                value={formData.hours}
-                onChange={(e) =>
-                  setFormData({ ...formData, hours: e.target.value })
-                }
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                placeholder="Mon-Fri 9am-6pm"
-              />
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Business Image URL
-            </label>
-            <input
-              type="url"
-              value={formData.imageUrl}
-              onChange={(e) =>
-                setFormData({ ...formData, imageUrl: e.target.value })
-              }
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-              placeholder="https://example.com/image.jpg"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Location Coordinates
-            </label>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-              <input
-                type="number"
-                step="any"
-                value={locationInput.lat}
-                onChange={(e) =>
-                  setLocationInput({ ...locationInput, lat: e.target.value })
-                }
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                placeholder="Latitude (43.4456)"
-              />
-              <input
-                type="number"
-                step="any"
-                value={locationInput.lng}
-                onChange={(e) =>
-                  setLocationInput({ ...locationInput, lng: e.target.value })
-                }
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                placeholder="Longitude (-79.6876)"
-              />
-            </div>
-            <input
-              type="text"
-              value={locationInput.address}
-              onChange={(e) =>
-                setLocationInput({ ...locationInput, address: e.target.value })
-              }
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500 mt-2"
-              placeholder="Full address for location"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Tags
-            </label>
-            <div className="flex gap-2 mb-2">
-              <input
-                type="text"
-                value={newTag}
-                onChange={(e) => setNewTag(e.target.value)}
-                className="flex-1 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-                placeholder="Add a tag (e.g., organic, local, sustainable)"
-                onKeyPress={(e) =>
-                  e.key === "Enter" && (e.preventDefault(), addTag())
-                }
-              />
-              <button
-                type="button"
-                onClick={addTag}
-                className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-              >
-                Add
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              {formData.tags.map((tag, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 bg-rose-100 text-rose-700 rounded-full text-sm flex items-center gap-1"
-                >
-                  {tag}
-                  <button
-                    type="button"
-                    onClick={() => removeTag(tag)}
-                    className="text-rose-500 hover:text-rose-700"
-                  >
-                    ×
-                  </button>
-                </span>
-              ))}
-            </div>
           </div>
 
           <button
@@ -364,7 +168,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
       </div>
 
       {/* Product Form */}
-      <div>
+      <div className="border-t pt-6">
         <h3 className="text-lg font-semibold mb-4">Add Product</h3>
         <form onSubmit={handleProductSubmit} className="space-y-4">
           <div>
@@ -374,9 +178,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
             <input
               type="text"
               value={productData.name}
-              onChange={(e) =>
-                setProductData({ ...productData, name: e.target.value })
-              }
+              onChange={(e) => setProductData({...productData, name: e.target.value})}
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
               required
             />
@@ -388,9 +190,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
             </label>
             <textarea
               value={productData.description}
-              onChange={(e) =>
-                setProductData({ ...productData, description: e.target.value })
-              }
+              onChange={(e) => setProductData({...productData, description: e.target.value})}
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
               rows={2}
             />
@@ -405,9 +205,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                 type="number"
                 step="0.01"
                 value={productData.price}
-                onChange={(e) =>
-                  setProductData({ ...productData, price: e.target.value })
-                }
+                onChange={(e) => setProductData({...productData, price: e.target.value})}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
                 required
               />
@@ -420,27 +218,10 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
               <input
                 type="text"
                 value={productData.category}
-                onChange={(e) =>
-                  setProductData({ ...productData, category: e.target.value })
-                }
+                onChange={(e) => setProductData({...productData, category: e.target.value})}
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
               />
             </div>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Product Image URL
-            </label>
-            <input
-              type="url"
-              value={productData.imageUrl}
-              onChange={(e) =>
-                setProductData({ ...productData, imageUrl: e.target.value })
-              }
-              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
-              placeholder="https://example.com/product-image.jpg"
-            />
           </div>
 
           <div className="flex items-center">
@@ -448,15 +229,10 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
               type="checkbox"
               id="inStock"
               checked={productData.inStock}
-              onChange={(e) =>
-                setProductData({ ...productData, inStock: e.target.checked })
-              }
+              onChange={(e) => setProductData({...productData, inStock: e.target.checked})}
               className="mr-2"
             />
-            <label
-              htmlFor="inStock"
-              className="text-sm font-medium text-gray-700"
-            >
+            <label htmlFor="inStock" className="text-sm font-medium text-gray-700">
               In Stock
             </label>
           </div>
