@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Search, Plus, Minus, Navigation, ChevronDown } from "lucide-react";
+import { Search, Plus, Minus, Navigation } from "lucide-react";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../firebase";
 import { getUserLocation } from "../utils/locationService";
@@ -31,12 +31,17 @@ const Mapping: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState("");
 
   const filters = [
-    { id: "farm", name: "Farm", icon: "🌾" },
-    { id: "restaurant", name: "Restaurant", icon: "🍽️" },
-    { id: "retail", name: "Retail", icon: "🛒" },
-    { id: "market", name: "Market", icon: "🏪" },
-    { id: "cafe", name: "Cafe", icon: "☕" },
     { id: "bakery", name: "Bakery", icon: "🥖" },
+    { id: "bookstore", name: "Book Store", icon: "📚" },
+    { id: "cafe", name: "Cafe", icon: "☕" },
+    { id: "clothing", name: "Clothing", icon: "👕" },
+    { id: "grocery", name: "Grocery", icon: "🛒" },
+    { id: "hairsalon", name: "Hair Salon", icon: "💈" },
+    { id: "icecream", name: "Ice Cream Shop", icon: "🍦" },
+    { id: "jewelry", name: "Jewelry Store", icon: "💍" },
+    { id: "nailSalon", name: "Nail Salon", icon: "💅" },
+    { id: "restaurant", name: "Restaurant", icon: "🍽️" },
+
   ];
 
   useEffect(() => {
@@ -225,7 +230,7 @@ const Mapping: React.FC = () => {
             <button
               key={filter.id}
               onClick={() => toggleFilter(filter.id)}
-              className={`px-4 py-2 rounded-full border flex items-center space-x-2 text-sm transition-colors ${
+              className={`px-3 py-2 rounded-full border flex items-center space-x-2 text-sm transition-colors ${
                 selectedFilters.includes(filter.id)
                   ? "bg-rose-500 text-white border-rose-500"
                   : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
@@ -233,14 +238,7 @@ const Mapping: React.FC = () => {
             >
               <span>{filter.icon}</span>
               <span>{filter.name}</span>
-              <ChevronDown
-                size={16}
-                className={
-                  selectedFilters.includes(filter.id)
-                    ? "text-white"
-                    : "text-gray-900"
-                }
-              />
+         
             </button>
           ))}
         </div>
