@@ -2,29 +2,45 @@ import React, { useState } from "react";
 import { auth, db } from "../firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
+import { useDropzone } from "react-dropzone";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 
 interface BusinessFormProps {
   onClose: () => void;
 }
 
 const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
+
+  const [imageFile, setImageFile] = useState<File | null>(null);
+
+  const onDrop = (acceptedFiles: File[]) => {
+    setImageFile(acceptedFiles[0]);
+  };
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'image/*': []
+    },
+    multiple: false
+  });
+
   const [user] = useAuthState(auth);
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
-    businessName: '',
-    description: '',
-    category: '',
-    address: '',
-    phone: '',
-    website: '',
-    hours: '',
+    businessName: "",
+    description: "",
+    category: "",
+    address: "",
+    phone: "",
+    website: "",
+    hours: "",
   });
 
   const [productData, setProductData] = useState({
-    name: '',
-    description: '',
-    price: '',
-    category: '',
+    name: "",
+    description: "",
+    price: "",
+    category: "",
     inStock: true,
   });
 
@@ -35,11 +51,15 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
     setLoading(true);
     try {
       // Update business document
-      await setDoc(doc(db, "businesses", user.uid), {
-        ...formData,
-        uid: user.uid,
-        updatedAt: new Date(),
-      }, { merge: true });
+      await setDoc(
+        doc(db, "businesses", user.uid),
+        {
+          ...formData,
+          uid: user.uid,
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
 
       alert("Business information updated successfully!");
       onClose();
@@ -57,23 +77,36 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
 
     setLoading(true);
     try {
-      // Add product to products collection
-      const productId = Date.now().toString(); // Simple ID generation
+      
+      let uploadedImageUrl = "";
+    if (imageFile) {
+      const storage = getStorage();
+      const storageRef = ref(storage, `productImages/${user.uid}_${Date.now()}_${imageFile.name}`);
+      await uploadBytes(storageRef, imageFile);
+      uploadedImageUrl = await getDownloadURL(storageRef);
+    }
+
+    // Add product to products collection
+    const productId = Date.now().toString(); // Simple ID generation
+
       await setDoc(doc(db, "products", productId), {
         ...productData,
         businessId: user.uid,
         price: parseFloat(productData.price),
         createdAt: new Date(),
+        productImage: uploadedImageUrl
       });
 
       alert("Product added successfully!");
       setProductData({
-        name: '',
-        description: '',
-        price: '',
-        category: '',
+        name: "",
+        description: "",
+        price: "",
+        category: "",
         inStock: true,
       });
+      setImageFile(null);
+      setImageFile(null);
     } catch (error) {
       console.error("Error adding product:", error);
       alert("Error adding product");
@@ -81,7 +114,6 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
       setLoading(false);
     }
   };
-
   return (
     <div className="space-y-6">
       {/* Business Information Form */}
@@ -95,7 +127,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
             <input
               type="text"
               value={formData.businessName}
-              onChange={(e) => setFormData({...formData, businessName: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, businessName: e.target.value })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
               required
             />
@@ -107,7 +141,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
             </label>
             <textarea
               value={formData.description}
-              onChange={(e) => setFormData({...formData, description: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, description: e.target.value })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
               rows={3}
             />
@@ -120,7 +156,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
               </label>
               <select
                 value={formData.category}
-                onChange={(e) => setFormData({...formData, category: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, category: e.target.value })
+                }
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
               >
                 <option value="">Select category</option>
@@ -139,7 +177,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
               <input
                 type="tel"
                 value={formData.phone}
-                onChange={(e) => setFormData({...formData, phone: e.target.value})}
+                onChange={(e) =>
+                  setFormData({ ...formData, phone: e.target.value })
+                }
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
               />
             </div>
@@ -152,11 +192,12 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
             <input
               type="text"
               value={formData.address}
-              onChange={(e) => setFormData({...formData, address: e.target.value})}
+              onChange={(e) =>
+                setFormData({ ...formData, address: e.target.value })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
             />
           </div>
-
           <button
             type="submit"
             disabled={loading}
@@ -178,7 +219,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
             <input
               type="text"
               value={productData.name}
-              onChange={(e) => setProductData({...productData, name: e.target.value})}
+              onChange={(e) =>
+                setProductData({ ...productData, name: e.target.value })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
               required
             />
@@ -190,7 +233,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
             </label>
             <textarea
               value={productData.description}
-              onChange={(e) => setProductData({...productData, description: e.target.value})}
+              onChange={(e) =>
+                setProductData({ ...productData, description: e.target.value })
+              }
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
               rows={2}
             />
@@ -205,7 +250,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                 type="number"
                 step="0.01"
                 value={productData.price}
-                onChange={(e) => setProductData({...productData, price: e.target.value})}
+                onChange={(e) =>
+                  setProductData({ ...productData, price: e.target.value })
+                }
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
                 required
               />
@@ -218,7 +265,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
               <input
                 type="text"
                 value={productData.category}
-                onChange={(e) => setProductData({...productData, category: e.target.value})}
+                onChange={(e) =>
+                  setProductData({ ...productData, category: e.target.value })
+                }
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
               />
             </div>
@@ -229,14 +278,27 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
               type="checkbox"
               id="inStock"
               checked={productData.inStock}
-              onChange={(e) => setProductData({...productData, inStock: e.target.checked})}
+              onChange={(e) =>
+                setProductData({ ...productData, inStock: e.target.checked })
+              }
               className="mr-2"
             />
-            <label htmlFor="inStock" className="text-sm font-medium text-gray-700">
+            <label
+              htmlFor="inStock"
+              className="text-sm font-medium text-gray-700"
+            >
               In Stock
             </label>
           </div>
-
+          <div {...getRootProps()} className="border-dashed border-2 p-4 mb-2 cursor-pointer">
+  <input {...getInputProps()} />
+  {isDragActive ? (
+    <p>Drop the product image here ...</p>
+  ) : (
+    <p>Drag and drop product image here, or click to select</p>
+  )}
+  {imageFile && <p>Selected: {imageFile.name}</p>}
+</div>
           <button
             type="submit"
             disabled={loading}

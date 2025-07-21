@@ -16,6 +16,14 @@ const firebaseConfig = {
   measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID,
 };
 
+// Debug: Check if environment variables are loaded
+if (!firebaseConfig.apiKey) {
+  console.error(
+    "Firebase configuration error: Environment variables not loaded properly"
+  );
+  console.log("Available env vars:", Object.keys(import.meta.env));
+}
+
 // export auth and provider
 const app = initializeApp(firebaseConfig);
 
