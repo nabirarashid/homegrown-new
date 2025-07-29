@@ -17,7 +17,7 @@ const Header = () => {
   const handleSearch = () => {
     if (searchQuery.trim() !== "") {
       navigate(`/search-results?q=${encodeURIComponent(searchQuery)}`);
-      setSearchQuery(""); // Optional: clear the search box after navigation
+      setSearchQuery("");
     }
   };
 
