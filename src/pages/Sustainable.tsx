@@ -5,6 +5,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { getDistanceString, getUserLocation } from "../utils/locationService";
 import LocationPermission from "../components/LocationPermission";
 
+
 // Distance display component
 const DistanceDisplay: React.FC<{
   location: { lat: number; lng: number };
@@ -35,6 +36,23 @@ const DistanceDisplay: React.FC<{
   return <span>{distance}</span>;
 };
 
+async function searchBusiness(searchQuery: string): Promise<Business[]> {
+  const queryLower = searchQuery.toLowerCase();
+  const productsRef = collection(db, "products"); // "products" is your Firestore collection name
+  const snapshot = await getDocs(productsRef);
+
+  const businesses: Business[] = snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+  })) as Business[];
+
+  return businesses.filter(business =>
+    business.businessName.toLowerCase().includes(queryLower) ||
+    business.description.toLowerCase().includes(queryLower)
+  );
+}
+
+
 interface Business {
   id: string;
   businessName: string;
@@ -51,6 +69,7 @@ interface Business {
 }
 
 const SustainableShoppingPage = () => {
+  const [searchResults, setSearchResults] = useState<Business[] | null>(null);
   const [mainSearchQuery, setMainSearchQuery] = useState("");
   const [userLocation, setUserLocation] = useState<{
     lat: number;
@@ -283,11 +302,40 @@ const SustainableShoppingPage = () => {
               type="text"
               placeholder="Search for businesses"
               value={mainSearchQuery}
-              onChange={(e) => setMainSearchQuery(e.target.value)}
+              onChange={(e) => {
+                const value = e.target.value;
+                setMainSearchQuery(value);
+                if (value.trim() === "") {
+                  setSearchResults(null);  // Clear results if search box is empty
+                } else {
+                  searchBusiness(value).then(setSearchResults);
+                }
+              }}
+              
               className="w-full pl-12 pr-6 py-4 bg-white/80 backdrop-blur-sm rounded-2xl text-lg focus:outline-none focus:ring-2 focus:ring-rose-300 shadow-lg transition-all"
             />
           </div>
         </div>
+
+        {/* Search Results Section */}
+        {searchResults && (
+          <section className="mb-16">
+            <SectionHeader
+              title={`Search Results for "${mainSearchQuery}"`}
+              subtitle={`${searchResults.length} businesses found`}
+            />
+            {searchResults.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                {searchResults.map((business: Business) => (
+                  <BusinessCard key={business.id} business={business} />
+                ))}
+              </div>
+            ) : (
+              <p className="text-center text-stone-600">No businesses found.</p>
+            )}
+          </section>
+        )}
+
 
         {/* Green Certified Section */}
         <section className="mb-16">
