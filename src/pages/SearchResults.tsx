@@ -4,8 +4,7 @@ import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { getDistanceString, getUserLocation } from "../utils/locationService";
 import LocationPermission from "../components/LocationPermission";
-
-// Initial search
+import { useLocation } from "react-router-dom";
 
 // Distance display component
 const DistanceDisplay: React.FC<{
@@ -71,6 +70,35 @@ interface Business {
 
 
 const SearchResults = () => {
+  const location = useLocation();
+
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const query = params.get("q") || params.get("query") || "";
+
+    if (query.trim() !== "") {
+      setMainSearchQuery(query);
+      searchBusiness(query).then(setSearchResults).catch(() => setSearchResults([]));
+    } else {
+      setSearchResults(null);
+    }
+
+    const requestLocation = async () => {
+      try {
+        const location = await getUserLocation();
+        setUserLocation(location);
+        setLocationPermission("granted");
+      } catch (error) {
+        console.error("Error getting user location:", error);
+        setLocationPermission("prompt");
+      }
+    };
+
+    requestLocation();
+  }, [location.search]);
+
+
   const [searchResults, setSearchResults] = useState<Business[] | null>(null);
   const [mainSearchQuery, setMainSearchQuery] = useState("");
   const [userLocation, setUserLocation] = useState<{
