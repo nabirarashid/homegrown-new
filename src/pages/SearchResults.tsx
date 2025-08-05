@@ -4,7 +4,7 @@ import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { getDistanceString, getUserLocation } from "../utils/locationService";
 import LocationPermission from "../components/LocationPermission";
-
+import { useLocation } from "react-router-dom";
 
 // Distance display component
 const DistanceDisplay: React.FC<{
@@ -61,7 +61,6 @@ interface Business {
   productImage?: string;
   tags?: string[];
   rating?: number;
-  website?: string;
   location?: {
     lat: number;
     lng: number;
@@ -69,7 +68,37 @@ interface Business {
   };
 }
 
-const SustainableShoppingPage = () => {
+
+const SearchResults = () => {
+  const location = useLocation();
+
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const query = params.get("q") || params.get("query") || "";
+
+    if (query.trim() !== "") {
+      setMainSearchQuery(query);
+      searchBusiness(query).then(setSearchResults).catch(() => setSearchResults([]));
+    } else {
+      setSearchResults(null);
+    }
+
+    const requestLocation = async () => {
+      try {
+        const location = await getUserLocation();
+        setUserLocation(location);
+        setLocationPermission("granted");
+      } catch (error) {
+        console.error("Error getting user location:", error);
+        setLocationPermission("prompt");
+      }
+    };
+
+    requestLocation();
+  }, [location.search]);
+
+
   const [searchResults, setSearchResults] = useState<Business[] | null>(null);
   const [mainSearchQuery, setMainSearchQuery] = useState("");
   const [userLocation, setUserLocation] = useState<{
@@ -79,52 +108,29 @@ const SustainableShoppingPage = () => {
   const [locationPermission, setLocationPermission] = useState<
     "granted" | "denied" | "prompt"
   >("prompt");
-  const [greenCertifiedBusinesses, setGreenCertifiedBusinesses] = useState<
-    Business[]
-  >([]);
-  const [locallySourcedBusinesses, setLocallySourcedBusinesses] = useState<
-    Business[]
-  >([]);
-  const [zeroWasteBusinesses, setZeroWasteBusinesses] = useState<Business[]>(
-    []
-  );
-  const [otherSustainableBusinesses, setOtherSustainableBusinesses] = useState<
-    Business[]
-  >([]);
   const [loading, setLoading] = useState(true);
 
-  // Filter function for search
-  const filterBusinesses = (businesses: Business[]) => {
-    if (!mainSearchQuery.trim()) return businesses;
-
-    return businesses.filter(
-      (business) =>
-        business.businessName
-          .toLowerCase()
-          .includes(mainSearchQuery.toLowerCase()) ||
-        business.description
-          ?.toLowerCase()
-          .includes(mainSearchQuery.toLowerCase()) ||
-        business.tags?.some((tag) =>
-          tag.toLowerCase().includes(mainSearchQuery.toLowerCase())
-        )
-    );
-  };
-
-  // Get user location on component mount
+  // Get user location and query on component mount
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const query = params.get("query");
+  if (query) {
+    setMainSearchQuery(query);
+    searchBusiness(query).then(setSearchResults);
+
     const requestLocation = async () => {
       try {
         const location = await getUserLocation();
         setUserLocation(location);
         setLocationPermission("granted");
-      } catch {
-        console.error("Error getting user location");
+      } catch (error) {
+        console.error("Error getting user location:", error);
         setLocationPermission("prompt");
       }
     };
-
     requestLocation();
+  }
+
   }, []);
 
   useEffect(() => {
@@ -136,76 +142,11 @@ const SustainableShoppingPage = () => {
           id: doc.id,
           ...doc.data(),
         })) as Business[];
-
-        // Filter businesses by EXACT sustainability tags
-        const greenCertified = allBusinesses.filter((business: Business) =>
-          business.tags?.some(
-            (tag: string) =>
-              tag.toLowerCase() === "green certified" ||
-              tag.toLowerCase() === "green-certified" ||
-              tag.toLowerCase() === "certified green"
-          )
-        );
-
-        const locallySourced = allBusinesses.filter((business: Business) =>
-          business.tags?.some(
-            (tag: string) =>
-              tag.toLowerCase() === "locally sourced" ||
-              tag.toLowerCase() === "locally-sourced" ||
-              tag.toLowerCase() === "local sourced"
-          )
-        );
-
-        const zeroWaste = allBusinesses.filter((business: Business) =>
-          business.tags?.some(
-            (tag: string) =>
-              tag.toLowerCase() === "zero waste" ||
-              tag.toLowerCase() === "zero-waste" ||
-              tag.toLowerCase() === "zero waste certified"
-          )
-        );
-
-        // Get other sustainable businesses (not in the main three categories)
-        const otherSustainable = allBusinesses.filter((business: Business) => {
-          const businessTags =
-            business.tags?.map((tag: string) => tag.toLowerCase()) || [];
-          const isInMainCategories = businessTags.some(
-            (tag: string) =>
-              tag === "green certified" ||
-              tag === "green-certified" ||
-              tag === "certified green" ||
-              tag === "locally sourced" ||
-              tag === "locally-sourced" ||
-              tag === "local sourced" ||
-              tag === "zero waste" ||
-              tag === "zero-waste" ||
-              tag === "zero waste certified"
-          );
-
-          // Include if it has other sustainability tags but isn't in main categories
-          const hasOtherSustainableTags = businessTags.some(
-            (tag: string) =>
-              tag.includes("organic") ||
-              tag.includes("eco") ||
-              tag.includes("sustainable") ||
-              tag.includes("green") ||
-              tag.includes("local") ||
-              tag.includes("farm") ||
-              tag.includes("artisan") ||
-              tag.includes("eco-friendly") ||
-              tag.includes("natural")
-          );
-
-          return !isInMainCategories && hasOtherSustainableTags;
-        });
-
-        setGreenCertifiedBusinesses(greenCertified);
-        setLocallySourcedBusinesses(locallySourced);
-        setZeroWasteBusinesses(zeroWaste);
-        setOtherSustainableBusinesses(otherSustainable);
+        console.log(allBusinesses);
+       
         setLoading(false);
-      } catch {
-        console.error("Error fetching sustainable businesses");
+      } catch (error) {
+        console.error("Error fetching sustainable businesses:", error);
         setLoading(false);
       }
     };
@@ -225,19 +166,7 @@ const SustainableShoppingPage = () => {
   }
 
   const BusinessCard = ({ business }: { business: Business }) => (
-    <div
-      className="group cursor-pointer relative"
-      onClick={() => {
-        if (business.website) {
-          window.open(business.website, "_blank");
-        }
-      }}
-    >
-      {business.website && (
-        <div className="absolute top-2 right-2 bg-rose-600 text-white px-2 py-1 rounded-full text-xs font-semibold z-10">
-          Visit
-        </div>
-      )}
+    <div className="group cursor-pointer">
       <div className="relative overflow-hidden rounded-2xl aspect-square mb-4 bg-gradient-to-br from-stone-100 to-stone-200">
         <img
           src={
@@ -319,11 +248,10 @@ const SustainableShoppingPage = () => {
         {/* Hero Section */}
         <div className="text-center mb-16">
           <h1 className="text-4xl md:text-5xl font-bold text-stone-800 mb-6 leading-tight">
-            Sustainable Choices
+            Seach
           </h1>
           <p className="text-stone-600 text-lg mb-8 max-w-2xl mx-auto">
-            Discover eco-friendly businesses that care about our planet. Support
-            local, sustainable commerce in your community.
+            Search for local businesses.
           </p>
 
           {/* Main Search */}
@@ -368,72 +296,9 @@ const SustainableShoppingPage = () => {
         )}
 
 
-        {/* Green Certified Section */}
-        <section className="mb-16">
-          <SectionHeader
-            title="Green Certified"
-            subtitle="Businesses with verified environmental certifications"
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filterBusinesses(greenCertifiedBusinesses).map(
-              (business: Business) => (
-                <BusinessCard key={business.id} business={business} />
-              )
-            )}
-          </div>
-        </section>
-
-        {/* Locally Sourced Section */}
-        <section className="mb-16">
-          <SectionHeader
-            title="Locally Sourced"
-            subtitle="Supporting local farmers and suppliers"
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filterBusinesses(locallySourcedBusinesses).map(
-              (business: Business) => (
-                <BusinessCard key={business.id} business={business} />
-              )
-            )}
-          </div>
-        </section>
-
-        {/* Zero-Waste Section */}
-        <section className="mb-16">
-          <SectionHeader
-            title="Zero-Waste"
-            subtitle="Businesses committed to reducing waste"
-          />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filterBusinesses(zeroWasteBusinesses).map((business: Business) => (
-              <BusinessCard key={business.id} business={business} />
-            ))}
-          </div>
-        </section>
-
-        {/* Other Sustainable Businesses */}
-        <section className="mb-16">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-stone-800 mb-4">
-              Other Sustainable Businesses
-            </h2>
-            <p className="text-stone-600 text-lg leading-relaxed max-w-2xl mx-auto">
-              Discover more businesses committed to sustainable practices,
-              including organic products, eco-friendly services, and
-              environmentally conscious operations.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filterBusinesses(otherSustainableBusinesses).map(
-              (business: Business) => (
-                <BusinessCard key={business.id} business={business} />
-              )
-            )}
-          </div>
-        </section>
       </div>
     </div>
   );
 };
 
-export default SustainableShoppingPage;
+export default SearchResults;

@@ -11,6 +11,8 @@ import Footer from './components/Footer'
 import SustainableShoppingPage from './pages/Sustainable'
 import Header from './components/Header'
 import Scroll from './pages/Scroll'
+import SearchResults from './pages/SearchResults'
+
 
 function App() {
   return (
@@ -22,6 +24,8 @@ function App() {
         <Route path="/recommendations" element={<Recommendations />} />
         <Route path="/sustainable" element={<SustainableShoppingPage />} />
         <Route path="/scroll" element={<Scroll />} />
+        <Route path="/search-results" element={<SearchResults />} />
+
       </Routes>
       <Footer />
     </Router>
