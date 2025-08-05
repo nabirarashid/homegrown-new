@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Search, Heart, User, Settings } from "lucide-react";
+import { Search, User, Settings } from "lucide-react";
 import CustomerModal from "./CustomerModal";
 import AdminModal from "./Admin";
 
