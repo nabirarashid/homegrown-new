@@ -10,7 +10,6 @@ interface BusinessFormProps {
 }
 
 const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
-
   const [imageFile, setImageFile] = useState<File | null>(null);
 
   const onDrop = (acceptedFiles: File[]) => {
@@ -19,9 +18,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     accept: {
-      'image/*': []
+      "image/*": [],
     },
-    multiple: false
+    multiple: false,
   });
 
   const [user] = useAuthState(auth);
@@ -42,6 +41,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
     price: "",
     category: "",
     inStock: true,
+    website: "",
   });
 
   const handleBusinessSubmit = async (e: React.FormEvent) => {
@@ -77,24 +77,26 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
 
     setLoading(true);
     try {
-      
       let uploadedImageUrl = "";
-    if (imageFile) {
-      const storage = getStorage();
-      const storageRef = ref(storage, `productImages/${user.uid}_${Date.now()}_${imageFile.name}`);
-      await uploadBytes(storageRef, imageFile);
-      uploadedImageUrl = await getDownloadURL(storageRef);
-    }
+      if (imageFile) {
+        const storage = getStorage();
+        const storageRef = ref(
+          storage,
+          `productImages/${user.uid}_${Date.now()}_${imageFile.name}`
+        );
+        await uploadBytes(storageRef, imageFile);
+        uploadedImageUrl = await getDownloadURL(storageRef);
+      }
 
-    // Add product to products collection
-    const productId = Date.now().toString(); // Simple ID generation
+      // Add product to products collection
+      const productId = Date.now().toString(); // Simple ID generation
 
       await setDoc(doc(db, "products", productId), {
         ...productData,
         businessId: user.uid,
         price: parseFloat(productData.price),
         createdAt: new Date(),
-        productImage: uploadedImageUrl
+        productImage: uploadedImageUrl,
       });
 
       alert("Product added successfully!");
@@ -104,6 +106,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         price: "",
         category: "",
         inStock: true,
+        website: "",
       });
       setImageFile(null);
       setImageFile(null);
@@ -273,6 +276,21 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
             </div>
           </div>
 
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Website (optional)
+            </label>
+            <input
+              type="url"
+              value={productData.website}
+              onChange={(e) =>
+                setProductData({ ...productData, website: e.target.value })
+              }
+              placeholder="https://example.com"
+              className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+            />
+          </div>
+
           <div className="flex items-center">
             <input
               type="checkbox"
@@ -290,15 +308,18 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
               In Stock
             </label>
           </div>
-          <div {...getRootProps()} className="border-dashed border-2 p-4 mb-2 cursor-pointer">
-  <input {...getInputProps()} />
-  {isDragActive ? (
-    <p>Drop the product image here ...</p>
-  ) : (
-    <p>Drag and drop product image here, or click to select</p>
-  )}
-  {imageFile && <p>Selected: {imageFile.name}</p>}
-</div>
+          <div
+            {...getRootProps()}
+            className="border-dashed border-2 p-4 mb-2 cursor-pointer"
+          >
+            <input {...getInputProps()} />
+            {isDragActive ? (
+              <p>Drop the product image here ...</p>
+            ) : (
+              <p>Drag and drop product image here, or click to select</p>
+            )}
+            {imageFile && <p>Selected: {imageFile.name}</p>}
+          </div>
           <button
             type="submit"
             disabled={loading}

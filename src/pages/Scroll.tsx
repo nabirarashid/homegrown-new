@@ -38,7 +38,7 @@ const DistanceDisplay: React.FC<{
         } else {
           setDistance("Location needed");
         }
-      } catch (error) {
+      } catch {
         setDistance("Distance N/A");
       }
     };

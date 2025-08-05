@@ -34,7 +34,7 @@ const Home = () => {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-rose-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-stone-50 to-rose-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
@@ -73,15 +73,31 @@ const Home = () => {
         {featuredBusinesses.map((business: any) => (
           <div
             key={business.id}
-            className="flex-shrink-0 w-64 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow"
+            className="flex-shrink-0 w-64 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer relative"
+            onClick={() => {
+              if (business.website) {
+                window.open(business.website, "_blank");
+              }
+            }}
           >
+            {business.website && (
+              <div className="absolute top-2 right-2 bg-rose-600 text-white px-2 py-1 rounded-full text-xs font-semibold z-10">
+                Visit
+              </div>
+            )}
             <img
               src={
+                business.productImage ||
                 business.image ||
-                "https://via.placeholder.com/400x300?text=Business"
+                "https://via.placeholder.com/400x300?text=Business+Image"
               }
               alt={business.businessName}
               className="w-full h-48 object-cover rounded-t-lg"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.src =
+                  "https://via.placeholder.com/400x300?text=Business+Image";
+              }}
             />
             <div className="p-4">
               <h3 className="font-semibold text-gray-900 mb-2">

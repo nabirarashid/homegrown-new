@@ -23,8 +23,8 @@ const Header = () => {
       <header className="flex items-center justify-between px-10 py-4 bg-white border-b border-gray-200">
         {/* Logo and navigation */}
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-rose-600 rounded-lg flex items-center justify-center">
-            <div className="w-4 h-4 bg-white rounded-sm"></div>
+          <div className="w-8 h-8 bg-rose-600 rounded-lg flex items-center justify-center text-white">
+            🏠
           </div>
           <h1 className="text-xl font-bold text-gray-900">HomeGrown</h1>
         </div>

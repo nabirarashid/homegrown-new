@@ -43,6 +43,7 @@ interface Business {
   productImage?: string;
   tags?: string[];
   rating?: number;
+  website?: string;
   location?: {
     lat: number;
     lng: number;
@@ -73,6 +74,24 @@ const SustainableShoppingPage = () => {
   >([]);
   const [loading, setLoading] = useState(true);
 
+  // Filter function for search
+  const filterBusinesses = (businesses: Business[]) => {
+    if (!mainSearchQuery.trim()) return businesses;
+
+    return businesses.filter(
+      (business) =>
+        business.businessName
+          .toLowerCase()
+          .includes(mainSearchQuery.toLowerCase()) ||
+        business.description
+          ?.toLowerCase()
+          .includes(mainSearchQuery.toLowerCase()) ||
+        business.tags?.some((tag) =>
+          tag.toLowerCase().includes(mainSearchQuery.toLowerCase())
+        )
+    );
+  };
+
   // Get user location on component mount
   useEffect(() => {
     const requestLocation = async () => {
@@ -80,8 +99,8 @@ const SustainableShoppingPage = () => {
         const location = await getUserLocation();
         setUserLocation(location);
         setLocationPermission("granted");
-      } catch (error) {
-        console.error("Error getting user location:", error);
+      } catch {
+        console.error("Error getting user location");
         setLocationPermission("prompt");
       }
     };
@@ -166,8 +185,8 @@ const SustainableShoppingPage = () => {
         setZeroWasteBusinesses(zeroWaste);
         setOtherSustainableBusinesses(otherSustainable);
         setLoading(false);
-      } catch (error) {
-        console.error("Error fetching sustainable businesses:", error);
+      } catch {
+        console.error("Error fetching sustainable businesses");
         setLoading(false);
       }
     };
@@ -187,7 +206,19 @@ const SustainableShoppingPage = () => {
   }
 
   const BusinessCard = ({ business }: { business: Business }) => (
-    <div className="group cursor-pointer">
+    <div
+      className="group cursor-pointer relative"
+      onClick={() => {
+        if (business.website) {
+          window.open(business.website, "_blank");
+        }
+      }}
+    >
+      {business.website && (
+        <div className="absolute top-2 right-2 bg-rose-600 text-white px-2 py-1 rounded-full text-xs font-semibold z-10">
+          Visit
+        </div>
+      )}
       <div className="relative overflow-hidden rounded-2xl aspect-square mb-4 bg-gradient-to-br from-stone-100 to-stone-200">
         <img
           src={
@@ -296,9 +327,11 @@ const SustainableShoppingPage = () => {
             subtitle="Businesses with verified environmental certifications"
           />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {greenCertifiedBusinesses.map((business: Business) => (
-              <BusinessCard key={business.id} business={business} />
-            ))}
+            {filterBusinesses(greenCertifiedBusinesses).map(
+              (business: Business) => (
+                <BusinessCard key={business.id} business={business} />
+              )
+            )}
           </div>
         </section>
 
@@ -309,9 +342,11 @@ const SustainableShoppingPage = () => {
             subtitle="Supporting local farmers and suppliers"
           />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {locallySourcedBusinesses.map((business: Business) => (
-              <BusinessCard key={business.id} business={business} />
-            ))}
+            {filterBusinesses(locallySourcedBusinesses).map(
+              (business: Business) => (
+                <BusinessCard key={business.id} business={business} />
+              )
+            )}
           </div>
         </section>
 
@@ -322,7 +357,7 @@ const SustainableShoppingPage = () => {
             subtitle="Businesses committed to reducing waste"
           />
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {zeroWasteBusinesses.map((business: Business) => (
+            {filterBusinesses(zeroWasteBusinesses).map((business: Business) => (
               <BusinessCard key={business.id} business={business} />
             ))}
           </div>
@@ -341,9 +376,11 @@ const SustainableShoppingPage = () => {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {otherSustainableBusinesses.map((business: Business) => (
-              <BusinessCard key={business.id} business={business} />
-            ))}
+            {filterBusinesses(otherSustainableBusinesses).map(
+              (business: Business) => (
+                <BusinessCard key={business.id} business={business} />
+              )
+            )}
           </div>
         </section>
       </div>

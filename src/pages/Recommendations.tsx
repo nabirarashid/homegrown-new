@@ -46,6 +46,7 @@ interface Business {
   address?: string;
   rating?: number;
   reviews?: number;
+  website?: string;
   location?: {
     lat: number;
     lng: number;
@@ -66,7 +67,6 @@ interface UserPreferences {
 }
 
 const Recommendations = () => {
-  const [selectedCategory, setSelectedCategory] = useState("All");
   const [userLocation, setUserLocation] = useState<{
     lat: number;
     lng: number;
@@ -83,8 +83,6 @@ const Recommendations = () => {
     useState<UserPreferences | null>(null);
   const [personalizedRecommendations, setPersonalizedRecommendations] =
     useState<Business[]>([]);
-
-  const categories = ["Food", "Wellness", "Vintage", "All"];
 
   // Get user location on component mount
   useEffect(() => {
@@ -216,24 +214,6 @@ const Recommendations = () => {
     );
   }
 
-  const CategoryFilters = () => (
-    <div className="flex gap-2 px-4 py-3 overflow-x-auto">
-      {categories.map((category) => (
-        <button
-          key={category}
-          onClick={() => setSelectedCategory(category)}
-          className={`px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap transition-colors ${
-            selectedCategory === category
-              ? "bg-rose-600 text-white"
-              : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-          }`}
-        >
-          {category}
-        </button>
-      ))}
-    </div>
-  );
-
   const BusinessCard = ({
     business,
     layout = "horizontal",
@@ -242,13 +222,25 @@ const Recommendations = () => {
     layout?: string;
   }) => (
     <div
-      className={`bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow ${
+      className={`bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer relative ${
         layout === "horizontal" ? "flex flex-col md:flex-row" : "flex flex-col"
       }`}
+      onClick={() => {
+        if (business.website) {
+          window.open(business.website, "_blank");
+        }
+      }}
     >
+      {business.website && (
+        <div className="absolute top-2 right-2 bg-rose-600 text-white px-2 py-1 rounded-full text-xs font-semibold z-10">
+          Visit
+        </div>
+      )}
       <img
         src={
-          business.image || "https://via.placeholder.com/400x300?text=Business"
+          business.productImage ||
+          business.image ||
+          "https://via.placeholder.com/400x300?text=Business+Image"
         }
         alt={business.businessName}
         className={`object-cover ${
@@ -258,6 +250,11 @@ const Recommendations = () => {
         } rounded-t-lg ${
           layout === "horizontal" ? "md:rounded-l-lg md:rounded-tr-none" : ""
         }`}
+        onError={(e) => {
+          const target = e.target as HTMLImageElement;
+          target.src =
+            "https://via.placeholder.com/400x300?text=Business+Image";
+        }}
       />
 
       <div className={`p-6 ${layout === "horizontal" ? "flex-1" : ""}`}>
@@ -312,7 +309,19 @@ const Recommendations = () => {
   );
 
   const SmallBusinessCard = ({ business }: { business: Business }) => (
-    <div className="flex-shrink-0 w-60 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+    <div
+      className="flex-shrink-0 w-60 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer relative"
+      onClick={() => {
+        if (business.website) {
+          window.open(business.website, "_blank");
+        }
+      }}
+    >
+      {business.website && (
+        <div className="absolute top-2 right-2 bg-rose-600 text-white px-2 py-1 rounded-full text-xs font-semibold z-10">
+          Visit
+        </div>
+      )}
       <img
         src={
           business.productImage ||
@@ -349,9 +358,7 @@ const Recommendations = () => {
   );
 
   return (
-    <div className="min-h-screen bg-rose-50 font-sans">
-      <CategoryFilters />
-
+    <div className="min-h-screen bg-gradient-to-br from-rose-50 via-stone-50 to-rose-100 font-sans">
       <main className="max-w-6xl mx-auto py-6 px-4">
         {/* Location Permission Banner */}
         {locationPermission === "prompt" && (
@@ -384,7 +391,7 @@ const Recommendations = () => {
                   <BusinessCard business={business} layout="vertical" />
                   {business.matchingTags &&
                     business.matchingTags.length > 0 && (
-                      <div className="absolute top-2 right-2 bg-rose-600 text-white px-2 py-1 rounded-full text-xs">
+                      <div className="absolute bottom-2 right-2 inline-block px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded mb-2">
                         {business.matchingTags.length} match
                         {business.matchingTags.length > 1 ? "es" : ""}
                       </div>
