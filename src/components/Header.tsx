@@ -4,16 +4,13 @@ import { Search, Heart, User, Settings } from "lucide-react";
 import CustomerModal from "./CustomerModal";
 import AdminModal from "./Admin";
 
-
-
 const Header = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const location = useLocation();
-  const navigate = useNavigate(); 
+  const navigate = useNavigate();
 
-  
   const handleSearch = () => {
     if (searchQuery.trim() !== "") {
       navigate(`/search-results?q=${encodeURIComponent(searchQuery)}`);
@@ -58,10 +55,10 @@ const Header = () => {
 
         {/* Actions */}
 
-  {/* Actions */}
-  <div className="flex items-center gap-4">
-          <div className="relative max-w-md w-full">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+        {/* Actions */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center bg-gray-100 rounded-full px-2 py-1 shadow-sm">
+            <Search className="text-gray-400 w-4 h-4 mr-1" />
             <input
               type="text"
               placeholder="Search"
@@ -70,21 +67,28 @@ const Header = () => {
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSearch();
               }}
-              className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:ring-rose-500 focus:border-rose-500"
+              className="bg-transparent outline-none text-sm px-1 w-24"
             />
+            <button
+              onClick={handleSearch}
+              className={`ml-1 p-1 rounded-full transition-colors ${
+                searchQuery.trim() === ""
+                  ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                  : "bg-rose-600 text-white hover:bg-rose-700"
+              }`}
+              disabled={searchQuery.trim() === ""}
+              style={{
+                height: 28,
+                width: 28,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+              aria-label="Search"
+            >
+              <Search className="w-4 h-4" />
+            </button>
           </div>
-
-          <button
-            onClick={handleSearch}
-            className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
-              searchQuery.trim() === ""
-                ? "bg-gray-300 text-gray-500 cursor-not-allowed"
-                : "bg-rose-600 text-white hover:bg-rose-700"
-            }`}
-            disabled={searchQuery.trim() === ""}
-          >
-            Search
-          </button>
 
           <button className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors">
             <Heart className="w-5 h-5 text-gray-600" />
