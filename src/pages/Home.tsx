@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowRight, Sparkles } from "lucide-react";
 import { db } from "../firebase";
 import { collection, getDocs, limit, query } from "firebase/firestore";
+import { PLACEHOLDER_IMAGES } from "../utils/placeholders";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -89,14 +90,13 @@ const Home = () => {
               src={
                 business.productImage ||
                 business.image ||
-                "https://via.placeholder.com/400x300?text=Business+Image"
+                PLACEHOLDER_IMAGES.business
               }
               alt={business.businessName}
               className="w-full h-48 object-cover rounded-t-lg"
               onError={(e) => {
                 const target = e.target as HTMLImageElement;
-                target.src =
-                  "https://via.placeholder.com/400x300?text=Business+Image";
+                target.src = PLACEHOLDER_IMAGES.business;
               }}
             />
             <div className="p-4">

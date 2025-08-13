@@ -3,7 +3,7 @@ import { auth, db } from "../firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { User, Settings } from "lucide-react";
 import Login from "./Login";
-import BusinessForm from "./BusinessForm";
+import BusinessDashboard from "./BusinessDashboard";
 import useUserRole from "../useUserRole";
 
 interface AuthModalProps {
@@ -20,6 +20,14 @@ const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const { user, loading, role } = useUserRole();
   const [isSigningOut, setIsSigningOut] = useState(false);
+
+  // Debug logging
+  console.log("AuthModal Debug:", {
+    user: user?.email,
+    loading,
+    role,
+    showBusinessForm,
+  });
 
   const handleSignOut = async () => {
     if (!user) return;
@@ -82,29 +90,49 @@ const AuthModal: React.FC<AuthModalProps> = ({
             <div>
               {/* User is logged in */}
               {showBusinessForm ? (
-                // Business management section - only show if user is business
-                role === "business" ? (
-                  <BusinessForm onClose={onClose} />
-                ) : (
+                // If user is admin, redirect to admin dashboard
+                user.email === "nabira.per1701@gmail.com" ? (
                   <div className="text-center py-8">
-                    <div className="text-red-600 mb-4">
+                    <div className="text-blue-600 mb-4">
                       <Settings className="w-12 h-12 mx-auto mb-2" />
                       <h3 className="text-lg font-semibold">
-                        Business Access Required
+                        Admin Dashboard Available
                       </h3>
                     </div>
                     <p className="text-gray-600 mb-4">
-                      You need to be signed in as a business to access this
-                      section.
-                      {role === "customer" &&
-                        " You're currently signed in as a customer."}
+                      You are accessing as admin. Use the "Admin" button in the
+                      header for the admin dashboard.
+                    </p>
+                    <button
+                      onClick={onClose}
+                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
+                    >
+                      Close
+                    </button>
+                  </div>
+                ) : role === "business" ? (
+                  // Business users always get their dashboard (which handles approved vs not approved internally)
+                  <BusinessDashboard onClose={onClose} />
+                ) : role === "customer" ? (
+                  <div className="text-center py-8">
+                    <div className="text-orange-600 mb-4">
+                      <Settings className="w-12 h-12 mx-auto mb-2" />
+                      <h3 className="text-lg font-semibold">
+                        Business Account Required
+                      </h3>
+                    </div>
+                    <p className="text-gray-600 mb-4">
+                      You're signed in as a customer. To manage a business, you
+                      need to sign up with a business account.
                     </p>
                     <button
                       onClick={handleSignOut}
                       disabled={isSigningOut}
                       className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 mr-2 disabled:opacity-50"
                     >
-                      {isSigningOut ? "Signing out..." : "Sign Out & Try Again"}
+                      {isSigningOut
+                        ? "Signing out..."
+                        : "Sign Out & Create Business Account"}
                     </button>
                     <button
                       onClick={onClose}
@@ -113,6 +141,9 @@ const AuthModal: React.FC<AuthModalProps> = ({
                       Close
                     </button>
                   </div>
+                ) : (
+                  // Role not set yet or unknown - show business dashboard anyway
+                  <BusinessDashboard onClose={onClose} />
                 )
               ) : (
                 // General profile section

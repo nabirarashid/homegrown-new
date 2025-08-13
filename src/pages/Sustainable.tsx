@@ -4,6 +4,7 @@ import { db } from "../firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { getDistanceString, getUserLocation } from "../utils/locationService";
 import LocationPermission from "../components/LocationPermission";
+import { PLACEHOLDER_IMAGES } from "../utils/placeholders";
 
 
 // Distance display component
@@ -243,7 +244,7 @@ const SustainableShoppingPage = () => {
           src={
             business.productImage ||
             business.image ||
-            "https://via.placeholder.com/400x400?text=Business"
+            PLACEHOLDER_IMAGES.businessSquare
           }
           alt={business.businessName}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"

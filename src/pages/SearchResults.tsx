@@ -5,6 +5,7 @@ import { collection, getDocs } from "firebase/firestore";
 import { getDistanceString, getUserLocation } from "../utils/locationService";
 import LocationPermission from "../components/LocationPermission";
 import { useLocation } from "react-router-dom";
+import { PLACEHOLDER_IMAGES } from "../utils/placeholders";
 
 // Distance display component
 const DistanceDisplay: React.FC<{
@@ -131,7 +132,7 @@ const SearchResults = () => {
     requestLocation();
   }
 
-  }, []);
+  }, [location.search]);
 
   useEffect(() => {
     const fetchSustainableBusinesses = async () => {
@@ -172,7 +173,7 @@ const SearchResults = () => {
           src={
             business.productImage ||
             business.image ||
-            "https://via.placeholder.com/400x400?text=Business"
+            PLACEHOLDER_IMAGES.businessSquare
           }
           alt={business.businessName}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"

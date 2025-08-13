@@ -4,6 +4,7 @@ import { db, auth } from "../firebase";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { getDistanceString, getUserLocation } from "../utils/locationService";
 import LocationPermission from "../components/LocationPermission";
+import { PLACEHOLDER_IMAGES } from "../utils/placeholders";
 
 // Distance display component
 const DistanceDisplay: React.FC<{
@@ -240,7 +241,7 @@ const Recommendations = () => {
         src={
           business.productImage ||
           business.image ||
-          "https://via.placeholder.com/400x300?text=Business+Image"
+          PLACEHOLDER_IMAGES.business
         }
         alt={business.businessName}
         className={`object-cover ${
@@ -252,8 +253,7 @@ const Recommendations = () => {
         }`}
         onError={(e) => {
           const target = e.target as HTMLImageElement;
-          target.src =
-            "https://via.placeholder.com/400x300?text=Business+Image";
+          target.src = PLACEHOLDER_IMAGES.business;
         }}
       />
 
@@ -325,7 +325,7 @@ const Recommendations = () => {
       <img
         src={
           business.productImage ||
-          "https://via.placeholder.com/400x300?text=Business"
+          PLACEHOLDER_IMAGES.business
         }
         alt={business.businessName}
         className="w-full h-48 object-cover rounded-t-lg"

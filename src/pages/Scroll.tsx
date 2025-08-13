@@ -18,6 +18,7 @@ import {
 } from "firebase/firestore";
 import { getUserLocation, getDistanceString } from "../utils/locationService";
 import LocationPermission from "../components/LocationPermission";
+import { PLACEHOLDER_IMAGES } from "../utils/placeholders";
 
 // Distance display component
 const DistanceDisplay: React.FC<{
@@ -92,7 +93,7 @@ const BusinessImage = React.memo(
         )}
         <img
           src={
-            error ? "https://via.placeholder.com/400x300?text=No+Image" : src
+            error ? PLACEHOLDER_IMAGES.noImage : src
           }
           alt={alt}
           className={`${className} transition-opacity duration-300 ${
@@ -397,7 +398,7 @@ const Scroll = () => {
               <BusinessImage
                 src={
                   currentBusiness?.productImage ||
-                  "https://via.placeholder.com/400x300?text=No+Image"
+                  PLACEHOLDER_IMAGES.noImage
                 }
                 alt={currentBusiness?.productName || "Product"}
                 className="w-full h-full object-cover"

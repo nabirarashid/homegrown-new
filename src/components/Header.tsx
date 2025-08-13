@@ -3,11 +3,15 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Search, User, Settings } from "lucide-react";
 import CustomerModal from "./CustomerModal";
 import AdminModal from "./Admin";
+import AuthModal from "./AuthModal";
+import useUserRole from "../useUserRole";
 
 const Header = () => {
+  const { user } = useUserRole();
   const [searchQuery, setSearchQuery] = useState("");
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
+  const [showBusinessModal, setShowBusinessModal] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -92,12 +96,23 @@ const Header = () => {
 
           {/* Settings/Gear button - For business product management */}
           <button
-            onClick={() => setShowAdminModal(true)}
+            onClick={() => setShowBusinessModal(true)}
             className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
             title="Business Management - Add Products & Business Info"
           >
             <Settings className="w-5 h-5 text-gray-600" />
           </button>
+
+          {/* Admin button - Only visible to admin */}
+          {user?.email === "nabira.per1701@gmail.com" && (
+            <button
+              onClick={() => setShowAdminModal(true)}
+              className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              title="Admin Dashboard - Manage Business Requests"
+            >
+              Admin
+            </button>
+          )}
 
           {/* Profile button - For general login/role selection */}
           <button
@@ -117,7 +132,14 @@ const Header = () => {
         onClose={() => setShowCustomerModal(false)}
       />
 
-      {/* Admin/Settings Modal - Business-only features */}
+      {/* Business Modal - For business management */}
+      <AuthModal
+        isOpen={showBusinessModal}
+        onClose={() => setShowBusinessModal(false)}
+        showBusinessForm={true}
+      />
+
+      {/* Admin/Settings Modal - Admin-only features */}
       <AdminModal
         isOpen={showAdminModal}
         onClose={() => setShowAdminModal(false)}
