@@ -6,7 +6,6 @@ import { getDistanceString, getUserLocation } from "../utils/locationService";
 import LocationPermission from "../components/LocationPermission";
 import { PLACEHOLDER_IMAGES } from "../utils/placeholders";
 
-
 // Distance display component
 const DistanceDisplay: React.FC<{
   location: { lat: number; lng: number };
@@ -42,17 +41,17 @@ async function searchBusiness(searchQuery: string): Promise<Business[]> {
   const productsRef = collection(db, "products"); // "products" is your Firestore collection name
   const snapshot = await getDocs(productsRef);
 
-  const businesses: Business[] = snapshot.docs.map(doc => ({
+  const businesses: Business[] = snapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
   })) as Business[];
 
-  return businesses.filter(business =>
-    business.businessName.toLowerCase().includes(queryLower) ||
-    business.description.toLowerCase().includes(queryLower)
+  return businesses.filter(
+    (business) =>
+      business.businessName.toLowerCase().includes(queryLower) ||
+      business.description.toLowerCase().includes(queryLower)
   );
 }
-
 
 interface Business {
   id: string;
@@ -338,12 +337,11 @@ const SustainableShoppingPage = () => {
                 const value = e.target.value;
                 setMainSearchQuery(value);
                 if (value.trim() === "") {
-                  setSearchResults(null);  // Clear results if search box is empty
+                  setSearchResults(null); // Clear results if search box is empty
                 } else {
                   searchBusiness(value).then(setSearchResults);
                 }
               }}
-              
               className="w-full pl-12 pr-6 py-4 bg-white/80 backdrop-blur-sm rounded-2xl text-lg focus:outline-none focus:ring-2 focus:ring-rose-300 shadow-lg transition-all"
             />
           </div>
@@ -367,7 +365,6 @@ const SustainableShoppingPage = () => {
             )}
           </section>
         )}
-
 
         {/* Green Certified Section */}
         <section className="mb-16">

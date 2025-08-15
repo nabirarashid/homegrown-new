@@ -239,9 +239,7 @@ const Recommendations = () => {
       )}
       <img
         src={
-          business.productImage ||
-          business.image ||
-          PLACEHOLDER_IMAGES.business
+          business.productImage || business.image || PLACEHOLDER_IMAGES.business
         }
         alt={business.businessName}
         className={`object-cover ${
@@ -323,10 +321,7 @@ const Recommendations = () => {
         </div>
       )}
       <img
-        src={
-          business.productImage ||
-          PLACEHOLDER_IMAGES.business
-        }
+        src={business.productImage || PLACEHOLDER_IMAGES.business}
         alt={business.businessName}
         className="w-full h-48 object-cover rounded-t-lg"
       />

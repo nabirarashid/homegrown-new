@@ -1,8 +1,11 @@
-import React, { useState } from "react";
+// authmodal.tsx
+
+import React, { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
 import { doc, updateDoc } from "firebase/firestore";
 import { User, Settings } from "lucide-react";
 import Login from "./Login";
+import BusinessForm from "./BusinessForm";
 import BusinessDashboard from "./BusinessDashboard";
 import useUserRole from "../useUserRole";
 
@@ -10,6 +13,7 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   showBusinessForm?: boolean;
+  showBusinessDashboard?: boolean;
   requiredRole?: string;
 }
 
@@ -17,8 +21,9 @@ const AuthModal: React.FC<AuthModalProps> = ({
   isOpen,
   onClose,
   showBusinessForm = false,
+  showBusinessDashboard = false,
 }) => {
-  const { user, loading, role } = useUserRole();
+  const { user, loading, role, refreshRole } = useUserRole();
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   // Debug logging
@@ -27,7 +32,16 @@ const AuthModal: React.FC<AuthModalProps> = ({
     loading,
     role,
     showBusinessForm,
+    showBusinessDashboard,
   });
+
+  // Auto-refresh role when user changes
+  useEffect(() => {
+    if (user && !role && !loading) {
+      console.log("Auto-refreshing role for user:", user.email);
+      refreshRole();
+    }
+  }, [user, role, loading, refreshRole]);
 
   const handleSignOut = async () => {
     if (!user) return;
@@ -64,12 +78,16 @@ const AuthModal: React.FC<AuthModalProps> = ({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
       <div
         className={`bg-white rounded-lg w-full mx-4 max-h-[90vh] overflow-y-auto ${
-          showBusinessForm ? "max-w-4xl" : "max-w-md"
+          showBusinessForm || showBusinessDashboard ? "max-w-4xl" : "max-w-3xl"
         }`}
       >
         <div className="flex justify-between items-center p-4 border-b">
           <h2 className="text-lg font-semibold">
-            {showBusinessForm ? "Business Management" : "Account"}
+            {showBusinessForm
+              ? "Add New Business"
+              : showBusinessDashboard
+              ? "Claim Business"
+              : "Account"}
           </h2>
           <button
             onClick={onClose}
@@ -110,41 +128,13 @@ const AuthModal: React.FC<AuthModalProps> = ({
                       Close
                     </button>
                   </div>
-                ) : role === "business" ? (
-                  // Business users always get their dashboard (which handles approved vs not approved internally)
-                  <BusinessDashboard onClose={onClose} />
-                ) : role === "customer" ? (
-                  <div className="text-center py-8">
-                    <div className="text-orange-600 mb-4">
-                      <Settings className="w-12 h-12 mx-auto mb-2" />
-                      <h3 className="text-lg font-semibold">
-                        Business Account Required
-                      </h3>
-                    </div>
-                    <p className="text-gray-600 mb-4">
-                      You're signed in as a customer. To manage a business, you
-                      need to sign up with a business account.
-                    </p>
-                    <button
-                      onClick={handleSignOut}
-                      disabled={isSigningOut}
-                      className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 mr-2 disabled:opacity-50"
-                    >
-                      {isSigningOut
-                        ? "Signing out..."
-                        : "Sign Out & Create Business Account"}
-                    </button>
-                    <button
-                      onClick={onClose}
-                      className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
-                    >
-                      Close
-                    </button>
-                  </div>
                 ) : (
-                  // Role not set yet or unknown - show business dashboard anyway
-                  <BusinessDashboard onClose={onClose} />
+                  // Anyone can add a business
+                  <BusinessForm onClose={onClose} />
                 )
+              ) : showBusinessDashboard ? (
+                // Show business dashboard for claiming
+                <BusinessDashboard />
               ) : (
                 // General profile section
                 <div className="text-center py-8">
@@ -157,7 +147,7 @@ const AuthModal: React.FC<AuthModalProps> = ({
                   <p className="text-gray-600 mb-4">
                     Account type:{" "}
                     <span className="font-medium capitalize">
-                      {role || "Not set"}
+                      {role || "Loading..."}
                     </span>
                   </p>
                   <button

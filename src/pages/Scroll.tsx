@@ -92,9 +92,7 @@ const BusinessImage = React.memo(
           </div>
         )}
         <img
-          src={
-            error ? PLACEHOLDER_IMAGES.noImage : src
-          }
+          src={error ? PLACEHOLDER_IMAGES.noImage : src}
           alt={alt}
           className={`${className} transition-opacity duration-300 ${
             isLoaded ? "opacity-100" : "opacity-0"
@@ -397,8 +395,7 @@ const Scroll = () => {
             <div className="relative h-1/2 overflow-hidden">
               <BusinessImage
                 src={
-                  currentBusiness?.productImage ||
-                  PLACEHOLDER_IMAGES.noImage
+                  currentBusiness?.productImage || PLACEHOLDER_IMAGES.noImage
                 }
                 alt={currentBusiness?.productName || "Product"}
                 className="w-full h-full object-cover"

@@ -1,133 +1,366 @@
 import React, { useState, useEffect } from "react";
 import { auth, db } from "../firebase";
-import { 
-  collection, 
-  getDocs, 
-  doc, 
+import {
+  collection,
+  getDocs,
+  doc,
   updateDoc,
   deleteDoc,
-  addDoc
+  query,
+  orderBy,
+  where,
+  setDoc,
 } from "firebase/firestore";
 import { useAuthState } from "react-firebase-hooks/auth";
-import { 
-  Check, 
+import {
+  Check,
   X,
-  Mail,
-  Phone,
   Building,
-  User,
-  Clock
+  Package,
+  Award,
+  ExternalLink,
+  Search,
 } from "lucide-react";
-
-interface BusinessRequest {
+interface PendingBusiness {
   id: string;
   businessName: string;
-  ownerName: string;
-  email: string;
+  description: string;
+  category: string;
+  address: string;
   phone: string;
+  website: string;
+  hours: string;
+  location: { address: string; lat: number; lng: number };
+  submittedBy: string;
+  submitterEmail: string;
+  submitterName: string;
+  status: "pending";
+  createdAt: { toDate: () => Date };
+  source: string;
+}
+
+interface PendingProduct {
+  id: string;
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  sustainabilityTags: string[];
+  inStock: boolean;
+  productImage: string;
+  businessId: string;
+  businessName: string;
+  submittedBy: string;
+  submitterEmail: string;
+  submitterName: string;
+  submittedByOwner?: boolean;
+  status: "pending";
+  createdAt: { toDate: () => Date };
+}
+
+interface ClaimRequest {
+  id: string;
+  businessId: string;
+  businessName: string;
+  claimedBy: string;
+  claimerEmail: string;
+  claimerName: string;
   message: string;
-  userId: string;
-  userEmail: string;
-  status: "pending" | "approved" | "rejected";
+  businessEmail: string;
+  verificationDocs: string;
+  status: "pending";
   createdAt: { toDate: () => Date };
 }
 
 const AdminDashboard: React.FC = () => {
   const [user] = useAuthState(auth);
   const [loading, setLoading] = useState(true);
-  const [requests, setRequests] = useState<BusinessRequest[]>([]);
+  const [activeTab, setActiveTab] = useState<
+    "businesses" | "products" | "claims"
+  >("businesses");
+  const [searchTerm, setSearchTerm] = useState("");
+
+  const [pendingBusinesses, setPendingBusinesses] = useState<PendingBusiness[]>(
+    []
+  );
+  const [pendingProducts, setPendingProducts] = useState<PendingProduct[]>([]);
+  const [claimRequests, setClaimRequests] = useState<ClaimRequest[]>([]);
 
   useEffect(() => {
     if (user) {
-      fetchBusinessRequests();
+      // Debug: Log user info for security check
+      console.log("Admin component - User email:", user.email);
+      console.log(
+        "Admin component - Is admin?",
+        user.email === "nabira.per1701@gmail.com"
+      );
+      fetchAllPendingItems();
     }
   }, [user]);
 
-  const fetchBusinessRequests = async () => {
+  // Safety check: ensure only admin can access
+  const isAdmin = user?.email === "nabira.per1701@gmail.com";
+
+  if (user && !isAdmin) {
+    console.error(
+      "SECURITY: Non-admin user accessed admin dashboard:",
+      user.email
+    );
+    return (
+      <div className="max-w-md mx-auto text-center py-12">
+        <div className="text-red-500 mb-4">
+          <span className="text-4xl">🚫</span>
+        </div>
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">
+          Access Restricted
+        </h3>
+        <p className="text-gray-600">
+          This dashboard is only available to administrators.
+        </p>
+      </div>
+    );
+  }
+
+  const fetchAllPendingItems = async () => {
     try {
-      const requestsSnapshot = await getDocs(collection(db, "businessRequests"));
-      const requestsData = requestsSnapshot.docs.map(doc => ({
+      // Fetch pending businesses
+      const businessesQuery = query(
+        collection(db, "pendingBusinesses"),
+        orderBy("createdAt", "desc")
+      );
+      const businessesSnapshot = await getDocs(businessesQuery);
+      const businessesData = businessesSnapshot.docs.map((doc) => ({
         id: doc.id,
-        ...doc.data()
-      })) as BusinessRequest[];
-      
-      // Sort by creation date, newest first
-      requestsData.sort((a, b) => b.createdAt?.toDate().getTime() - a.createdAt?.toDate().getTime());
-      setRequests(requestsData);
+        ...doc.data(),
+      })) as PendingBusiness[];
+      setPendingBusinesses(businessesData);
+
+      // Fetch pending products
+      const productsQuery = query(
+        collection(db, "pendingProducts"),
+        orderBy("createdAt", "desc")
+      );
+      const productsSnapshot = await getDocs(productsQuery);
+      const productsData = productsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as PendingProduct[];
+      setPendingProducts(productsData);
+
+      // Fetch claim requests
+      const claimsQuery = query(
+        collection(db, "businessClaimRequests"),
+        where("status", "==", "pending")
+      );
+      const claimsSnapshot = await getDocs(claimsQuery);
+      const claimsData = claimsSnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      })) as ClaimRequest[];
+      setClaimRequests(claimsData);
     } catch (error) {
-      console.error("Error fetching business requests:", error);
+      console.error("Error fetching pending items:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const handleApproveRequest = async (request: BusinessRequest) => {
+  const approveBusiness = async (business: PendingBusiness) => {
     try {
       setLoading(true);
-      
-      // Create business document
-      await addDoc(collection(db, "businesses"), {
-        businessName: request.businessName,
-        description: "", // Can be filled later
-        category: "", // Can be filled later
-        address: "", // Can be filled later
-        phone: request.phone,
-        website: "", // Can be filled later
-        hours: "", // Can be filled later
-        email: request.email,
-        ownerId: request.userId,
-        createdAt: new Date(),
+
+      // Move to main businesses collection
+      await setDoc(doc(db, "businesses", business.id), {
+        ...business,
+        status: "active",
         approvedAt: new Date(),
-        approvedBy: user?.uid
+        approvedBy: user?.uid,
       });
 
-      // Update request status
-      await updateDoc(doc(db, "businessRequests", request.id), {
-        status: "approved",
-        approvedAt: new Date(),
-        approvedBy: user?.uid
-      });
+      // Remove from pending
+      await deleteDoc(doc(db, "pendingBusinesses", business.id));
 
-      alert(`Business "${request.businessName}" has been approved!`);
-      await fetchBusinessRequests();
+      // Note: Could update contributor's count here if needed
+      // const contributorDoc = doc(db, "customers", business.submittedBy);
+
+      alert("Business approved and added to active listings!");
+      await fetchAllPendingItems();
     } catch (error) {
-      console.error("Error approving request:", error);
-      alert("Error approving request. Please try again.");
+      console.error("Error approving business:", error);
+      alert("Error approving business. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleRejectRequest = async (request: BusinessRequest) => {
-    if (!confirm(`Are you sure you want to reject "${request.businessName}"?`)) return;
+  const rejectBusiness = async (businessId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to reject this business? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
 
     try {
-      await updateDoc(doc(db, "businessRequests", request.id), {
-        status: "rejected",
-        rejectedAt: new Date(),
-        rejectedBy: user?.uid
+      setLoading(true);
+      await deleteDoc(doc(db, "pendingBusinesses", businessId));
+      alert("Business rejected and removed.");
+      await fetchAllPendingItems();
+    } catch (error) {
+      console.error("Error rejecting business:", error);
+      alert("Error rejecting business. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const approveProduct = async (product: PendingProduct) => {
+    try {
+      setLoading(true);
+
+      // Move to main products collection
+      await setDoc(doc(db, "products", product.id), {
+        ...product,
+        status: "active",
+        approvedAt: new Date(),
+        approvedBy: user?.uid,
       });
 
-      alert(`Business request for "${request.businessName}" has been rejected.`);
-      await fetchBusinessRequests();
+      // Remove from pending
+      await deleteDoc(doc(db, "pendingProducts", product.id));
+
+      alert("Product approved and added to active listings!");
+      await fetchAllPendingItems();
     } catch (error) {
-      console.error("Error rejecting request:", error);
-      alert("Error rejecting request. Please try again.");
+      console.error("Error approving product:", error);
+      alert("Error approving product. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleDeleteRequest = async (request: BusinessRequest) => {
-    if (!confirm(`Are you sure you want to delete this request permanently?`)) return;
+  const rejectProduct = async (productId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to reject this product? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
 
     try {
-      await deleteDoc(doc(db, "businessRequests", request.id));
-      alert("Request deleted successfully.");
-      await fetchBusinessRequests();
+      setLoading(true);
+      await deleteDoc(doc(db, "pendingProducts", productId));
+      alert("Product rejected and removed.");
+      await fetchAllPendingItems();
     } catch (error) {
-      console.error("Error deleting request:", error);
-      alert("Error deleting request. Please try again.");
+      console.error("Error rejecting product:", error);
+      alert("Error rejecting product. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
+
+  const approveClaim = async (claim: ClaimRequest) => {
+    try {
+      setLoading(true);
+
+      // Update business with claim info
+      await updateDoc(doc(db, "businesses", claim.businessId), {
+        status: "claimed",
+        claimedBy: claim.claimedBy,
+        claimerEmail: claim.claimerEmail,
+        claimerName: claim.claimerName,
+        claimedAt: new Date(),
+        businessEmail: claim.businessEmail,
+      });
+
+      // Update claim request status
+      await updateDoc(doc(db, "businessClaimRequests", claim.id), {
+        status: "approved",
+        approvedAt: new Date(),
+        approvedBy: user?.uid,
+      });
+
+      // Update user's role to business if they're not already
+      await setDoc(
+        doc(db, "users", claim.claimedBy),
+        {
+          role: "business",
+          updatedAt: new Date(),
+        },
+        { merge: true }
+      );
+
+      // Create business profile if doesn't exist
+      await setDoc(
+        doc(db, "businesses", claim.claimedBy),
+        {
+          uid: claim.claimedBy,
+          claimedBusinessId: claim.businessId,
+          claimApprovedAt: new Date(),
+        },
+        { merge: true }
+      );
+
+      alert(
+        `Claim approved! ${claim.claimerName} now owns "${claim.businessName}"`
+      );
+      await fetchAllPendingItems();
+    } catch (error) {
+      console.error("Error approving claim:", error);
+      alert("Error approving claim. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const rejectClaim = async (claimId: string) => {
+    if (
+      !confirm(
+        "Are you sure you want to reject this claim? This action cannot be undone."
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setLoading(true);
+      await updateDoc(doc(db, "businessClaimRequests", claimId), {
+        status: "rejected",
+        rejectedAt: new Date(),
+        rejectedBy: user?.uid,
+      });
+      alert("Claim rejected.");
+      await fetchAllPendingItems();
+    } catch (error) {
+      console.error("Error rejecting claim:", error);
+      alert("Error rejecting claim. Please try again.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredBusinesses = pendingBusinesses.filter(
+    (business) =>
+      business.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      business.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      business.submitterName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredProducts = pendingProducts.filter(
+    (product) =>
+      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      product.submitterName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const filteredClaims = claimRequests.filter(
+    (claim) =>
+      claim.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      claim.claimerName.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   if (loading) {
     return (
@@ -138,189 +371,404 @@ const AdminDashboard: React.FC = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto">
+    <div className="max-w-7xl mx-auto">
+      {/* Header */}
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Admin Dashboard
+        </h1>
+        <p className="text-gray-600">
+          Review and approve community contributions
+        </p>
+      </div>
+
+      {/* Stats Overview */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-blue-900">
+                Pending Businesses
+              </h3>
+              <p className="text-3xl font-bold text-blue-600">
+                {pendingBusinesses.length}
+              </p>
+            </div>
+            <Building className="w-12 h-12 text-blue-500" />
+          </div>
+        </div>
+
+        <div className="bg-green-50 border border-green-200 rounded-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-green-900">
+                Pending Products
+              </h3>
+              <p className="text-3xl font-bold text-green-600">
+                {pendingProducts.length}
+              </p>
+            </div>
+            <Package className="w-12 h-12 text-green-500" />
+          </div>
+        </div>
+
+        <div className="bg-amber-50 border border-amber-200 rounded-lg p-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="text-lg font-semibold text-amber-900">
+                Claim Requests
+              </h3>
+              <p className="text-3xl font-bold text-amber-600">
+                {claimRequests.length}
+              </p>
+            </div>
+            <Award className="w-12 h-12 text-amber-500" />
+          </div>
+        </div>
+      </div>
+
+      {/* Tabs */}
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="flex space-x-8">
+          {[
+            {
+              id: "businesses",
+              label: "Businesses",
+              count: pendingBusinesses.length,
+            },
+            {
+              id: "products",
+              label: "Products",
+              count: pendingProducts.length,
+            },
+            { id: "claims", label: "Claims", count: claimRequests.length },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as "businesses" | "products" | "claims")}
+              className={`py-2 px-1 border-b-2 font-medium text-sm ${
+                activeTab === tab.id
+                  ? "border-rose-500 text-rose-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              {tab.label}
+              {tab.count > 0 && (
+                <span className="ml-2 bg-gray-200 text-gray-900 py-0.5 px-2 rounded-full text-xs">
+                  {tab.count}
+                </span>
+              )}
+            </button>
+          ))}
+        </nav>
+      </div>
+
+      {/* Search */}
       <div className="mb-6">
-        <h2 className="text-2xl font-bold text-gray-900">Admin Dashboard</h2>
-        <p className="text-gray-600">Manage business registration requests</p>
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <Clock className="w-8 h-8 text-yellow-600 mr-3" />
-            <div>
-              <div className="text-2xl font-bold text-yellow-900">
-                {requests.filter(r => r.status === "pending").length}
-              </div>
-              <div className="text-sm text-yellow-700">Pending Requests</div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <Check className="w-8 h-8 text-green-600 mr-3" />
-            <div>
-              <div className="text-2xl font-bold text-green-900">
-                {requests.filter(r => r.status === "approved").length}
-              </div>
-              <div className="text-sm text-green-700">Approved</div>
-            </div>
-          </div>
-        </div>
-        
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <div className="flex items-center">
-            <X className="w-8 h-8 text-red-600 mr-3" />
-            <div>
-              <div className="text-2xl font-bold text-red-900">
-                {requests.filter(r => r.status === "rejected").length}
-              </div>
-              <div className="text-sm text-red-700">Rejected</div>
-            </div>
-          </div>
+        <div className="relative">
+          <Search className="w-5 h-5 absolute left-3 top-3 text-gray-400" />
+          <input
+            type="text"
+            placeholder={`Search ${activeTab}...`}
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500 focus:border-rose-500"
+          />
         </div>
       </div>
 
-      {/* Requests List */}
-      {requests.length === 0 ? (
-        <div className="text-center py-12 bg-gray-50 rounded-lg">
-          <Building className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">No Requests Yet</h3>
-          <p className="text-gray-600">Business registration requests will appear here.</p>
-        </div>
-      ) : (
+      {/* Content */}
+      {activeTab === "businesses" && (
         <div className="space-y-4">
-          {requests.map((request) => (
-            <div key={request.id} className="bg-white border border-gray-200 rounded-lg p-6">
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <Building className="w-5 h-5 text-gray-600" />
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      {request.businessName}
+          {filteredBusinesses.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <Building className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-600">No pending businesses to review</p>
+            </div>
+          ) : (
+            filteredBusinesses.map((business) => (
+              <div
+                key={business.id}
+                className="bg-white border border-gray-200 rounded-lg p-6"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      {business.businessName}
                     </h3>
-                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      request.status === "pending" 
-                        ? "bg-yellow-100 text-yellow-800"
-                        : request.status === "approved"
-                        ? "bg-green-100 text-green-800"
-                        : "bg-red-100 text-red-800"
-                    }`}>
-                      {request.status.charAt(0).toUpperCase() + request.status.slice(1)}
-                    </span>
+                    <p className="text-gray-600 mb-3">{business.description}</p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-500">
+                      <div>
+                        <p>
+                          <strong>Category:</strong> {business.category}
+                        </p>
+                        <p>
+                          <strong>Address:</strong> {business.address}
+                        </p>
+                        {business.phone && (
+                          <p>
+                            <strong>Phone:</strong> {business.phone}
+                          </p>
+                        )}
+                        {business.website && (
+                          <p>
+                            <strong>Website:</strong>{" "}
+                            <a
+                              href={business.website}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-blue-600 hover:underline"
+                            >
+                              {business.website}
+                            </a>
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <p>
+                          <strong>Submitted by:</strong>{" "}
+                          {business.submitterName}
+                        </p>
+                        <p>
+                          <strong>Email:</strong> {business.submitterEmail}
+                        </p>
+                        <p>
+                          <strong>Submitted:</strong>{" "}
+                          {business.createdAt.toDate().toLocaleDateString()}
+                        </p>
+                        <p>
+                          <strong>Source:</strong> {business.source}
+                        </p>
+                      </div>
+                    </div>
                   </div>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-600">
-                    <div className="flex items-center gap-2">
-                      <User className="w-4 h-4" />
-                      <span>{request.ownerName}</span>
+
+                  <div className="flex gap-2 ml-4">
+                    <button
+                      onClick={() => approveBusiness(business)}
+                      className="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 transition-colors"
+                      title="Approve"
+                    >
+                      <Check className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => rejectBusiness(business.id)}
+                      className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 transition-colors"
+                      title="Reject"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {activeTab === "products" && (
+        <div className="space-y-4">
+          {filteredProducts.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <Package className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-600">No pending products to review</p>
+            </div>
+          ) : (
+            filteredProducts.map((product) => (
+              <div
+                key={product.id}
+                className="bg-white border border-gray-200 rounded-lg p-6"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex gap-4 flex-1">
+                    {product.productImage && (
+                      <img
+                        src={product.productImage}
+                        alt={product.name}
+                        className="w-24 h-24 object-cover rounded-lg"
+                      />
+                    )}
+
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <h3 className="text-xl font-semibold text-gray-900">
+                          {product.name}
+                        </h3>
+                        <span className="text-2xl font-bold text-green-600">
+                          ${product.price.toFixed(2)}
+                        </span>
+                        {product.submittedByOwner && (
+                          <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                            Owner Submitted
+                          </span>
+                        )}
+                      </div>
+
+                      <p className="text-gray-600 mb-3">
+                        {product.description}
+                      </p>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-500">
+                        <div>
+                          <p>
+                            <strong>Business:</strong> {product.businessName}
+                          </p>
+                          <p>
+                            <strong>Category:</strong> {product.category}
+                          </p>
+                          <p>
+                            <strong>In Stock:</strong>{" "}
+                            {product.inStock ? "Yes" : "No"}
+                          </p>
+                        </div>
+                        <div>
+                          <p>
+                            <strong>Submitted by:</strong>{" "}
+                            {product.submitterName}
+                          </p>
+                          <p>
+                            <strong>Email:</strong> {product.submitterEmail}
+                          </p>
+                          <p>
+                            <strong>Submitted:</strong>{" "}
+                            {product.createdAt.toDate().toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+
+                      {product.sustainabilityTags &&
+                        product.sustainabilityTags.length > 0 && (
+                          <div className="mt-3">
+                            <p className="text-sm text-gray-500 mb-1">
+                              <strong>Sustainability Tags:</strong>
+                            </p>
+                            <div className="flex flex-wrap gap-1">
+                              {product.sustainabilityTags.map((tag) => (
+                                <span
+                                  key={tag}
+                                  className="px-2 py-1 bg-green-100 text-green-800 text-xs rounded-full"
+                                >
+                                  {tag}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Mail className="w-4 h-4" />
-                      <span>{request.email}</span>
+                  </div>
+
+                  <div className="flex gap-2 ml-4">
+                    <button
+                      onClick={() => approveProduct(product)}
+                      className="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 transition-colors"
+                      title="Approve"
+                    >
+                      <Check className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => rejectProduct(product.id)}
+                      className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 transition-colors"
+                      title="Reject"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+
+      {activeTab === "claims" && (
+        <div className="space-y-4">
+          {filteredClaims.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <Award className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+              <p className="text-gray-600">No pending claims to review</p>
+            </div>
+          ) : (
+            filteredClaims.map((claim) => (
+              <div
+                key={claim.id}
+                className="bg-white border border-gray-200 rounded-lg p-6"
+              >
+                <div className="flex justify-between items-start mb-4">
+                  <div className="flex-1">
+                    <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                      Claim for "{claim.businessName}"
+                    </h3>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm text-gray-500 mb-4">
+                      <div>
+                        <p>
+                          <strong>Claimant:</strong> {claim.claimerName}
+                        </p>
+                        <p>
+                          <strong>Email:</strong> {claim.claimerEmail}
+                        </p>
+                        <p>
+                          <strong>Business Email:</strong> {claim.businessEmail}
+                        </p>
+                        <p>
+                          <strong>Submitted:</strong>{" "}
+                          {claim.createdAt.toDate().toLocaleDateString()}
+                        </p>
+                      </div>
                     </div>
-                    {request.phone && (
-                      <div className="flex items-center gap-2">
-                        <Phone className="w-4 h-4" />
-                        <span>{request.phone}</span>
+
+                    <div className="mb-4">
+                      <h4 className="font-medium text-gray-900 mb-2">
+                        Verification Message:
+                      </h4>
+                      <div className="bg-gray-50 p-3 rounded-lg">
+                        <p className="text-gray-700">{claim.message}</p>
+                      </div>
+                    </div>
+
+                    {claim.verificationDocs && (
+                      <div className="mb-4">
+                        <h4 className="font-medium text-gray-900 mb-2">
+                          Verification Documents:
+                        </h4>
+                        <a
+                          href={claim.verificationDocs}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:underline flex items-center gap-1"
+                        >
+                          <ExternalLink className="w-4 h-4" />
+                          View Documents
+                        </a>
                       </div>
                     )}
-                    <div className="flex items-center gap-2">
-                      <Clock className="w-4 h-4" />
-                      <span>{request.createdAt?.toDate().toLocaleDateString()}</span>
-                    </div>
                   </div>
-                  
-                  {request.message && (
-                    <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm text-gray-700">{request.message}</p>
-                    </div>
-                  )}
-                </div>
-                
-                <div className="flex gap-2 ml-4">
-                  {request.status === "pending" && (
-                    <>
-                      <button
-                        onClick={() => handleApproveRequest(request)}
-                        className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                        title="Approve"
-                      >
-                        <Check className="w-5 h-5" />
-                      </button>
-                      <button
-                        onClick={() => handleRejectRequest(request)}
-                        className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                        title="Reject"
-                      >
-                        <X className="w-5 h-5" />
-                      </button>
-                    </>
-                  )}
-                  <button
-                    onClick={() => handleDeleteRequest(request)}
-                    className="p-2 text-gray-600 hover:bg-gray-50 rounded-lg transition-colors"
-                    title="Delete"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
+
+                  <div className="flex gap-2 ml-4">
+                    <button
+                      onClick={() => approveClaim(claim)}
+                      className="bg-green-600 text-white p-2 rounded-lg hover:bg-green-700 transition-colors"
+                      title="Approve Claim"
+                    >
+                      <Check className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => rejectClaim(claim.id)}
+                      className="bg-red-600 text-white p-2 rounded-lg hover:bg-red-700 transition-colors"
+                      title="Reject Claim"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))
+          )}
         </div>
       )}
     </div>
   );
 };
 
-const AdminModal: React.FC<{ isOpen: boolean; onClose: () => void }> = ({
-  isOpen,
-  onClose,
-}) => {
-  const [user] = useAuthState(auth);
-
-  if (!isOpen) return null;
-
-  return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
-      <div className="bg-white rounded-lg w-full mx-4 max-w-6xl max-h-[90vh] overflow-y-auto">
-        <div className="flex justify-between items-center p-4 border-b">
-          <h2 className="text-lg font-semibold">Admin Dashboard</h2>
-          <button
-            onClick={onClose}
-            className="text-gray-500 hover:text-gray-700"
-          >
-            ✕
-          </button>
-        </div>
-
-        <div className="p-6">
-          {user?.email === "nabira.per1701@gmail.com" ? (
-            <AdminDashboard />
-          ) : (
-            <div className="text-center py-8">
-              <div className="text-red-600 mb-4">
-                <Building className="w-12 h-12 mx-auto mb-2" />
-                <h3 className="text-lg font-semibold">Admin Access Required</h3>
-              </div>
-              <p className="text-gray-600 mb-4">
-                You need administrator privileges to access this section.
-              </p>
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
-              >
-                Close
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default AdminModal;
+export default AdminDashboard;

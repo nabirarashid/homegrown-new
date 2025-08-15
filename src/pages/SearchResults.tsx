@@ -42,17 +42,17 @@ async function searchBusiness(searchQuery: string): Promise<Business[]> {
   const productsRef = collection(db, "products"); // "products" is your Firestore collection name
   const snapshot = await getDocs(productsRef);
 
-  const businesses: Business[] = snapshot.docs.map(doc => ({
+  const businesses: Business[] = snapshot.docs.map((doc) => ({
     id: doc.id,
     ...doc.data(),
   })) as Business[];
 
-  return businesses.filter(business =>
-    business.businessName.toLowerCase().includes(queryLower) ||
-    business.description.toLowerCase().includes(queryLower)
+  return businesses.filter(
+    (business) =>
+      business.businessName.toLowerCase().includes(queryLower) ||
+      business.description.toLowerCase().includes(queryLower)
   );
 }
-
 
 interface Business {
   id: string;
@@ -69,10 +69,8 @@ interface Business {
   };
 }
 
-
 const SearchResults = () => {
   const location = useLocation();
-
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);
@@ -80,7 +78,9 @@ const SearchResults = () => {
 
     if (query.trim() !== "") {
       setMainSearchQuery(query);
-      searchBusiness(query).then(setSearchResults).catch(() => setSearchResults([]));
+      searchBusiness(query)
+        .then(setSearchResults)
+        .catch(() => setSearchResults([]));
     } else {
       setSearchResults(null);
     }
@@ -99,7 +99,6 @@ const SearchResults = () => {
     requestLocation();
   }, [location.search]);
 
-
   const [searchResults, setSearchResults] = useState<Business[] | null>(null);
   const [mainSearchQuery, setMainSearchQuery] = useState("");
   const [userLocation, setUserLocation] = useState<{
@@ -115,23 +114,22 @@ const SearchResults = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const query = params.get("query");
-  if (query) {
-    setMainSearchQuery(query);
-    searchBusiness(query).then(setSearchResults);
+    if (query) {
+      setMainSearchQuery(query);
+      searchBusiness(query).then(setSearchResults);
 
-    const requestLocation = async () => {
-      try {
-        const location = await getUserLocation();
-        setUserLocation(location);
-        setLocationPermission("granted");
-      } catch (error) {
-        console.error("Error getting user location:", error);
-        setLocationPermission("prompt");
-      }
-    };
-    requestLocation();
-  }
-
+      const requestLocation = async () => {
+        try {
+          const location = await getUserLocation();
+          setUserLocation(location);
+          setLocationPermission("granted");
+        } catch (error) {
+          console.error("Error getting user location:", error);
+          setLocationPermission("prompt");
+        }
+      };
+      requestLocation();
+    }
   }, [location.search]);
 
   useEffect(() => {
@@ -144,7 +142,7 @@ const SearchResults = () => {
           ...doc.data(),
         })) as Business[];
         console.log(allBusinesses);
-       
+
         setLoading(false);
       } catch (error) {
         console.error("Error fetching sustainable businesses:", error);
@@ -266,12 +264,11 @@ const SearchResults = () => {
                 const value = e.target.value;
                 setMainSearchQuery(value);
                 if (value.trim() === "") {
-                  setSearchResults(null);  // Clear results if search box is empty
+                  setSearchResults(null); // Clear results if search box is empty
                 } else {
                   searchBusiness(value).then(setSearchResults);
                 }
               }}
-              
               className="w-full pl-12 pr-6 py-4 bg-white/80 backdrop-blur-sm rounded-2xl text-lg focus:outline-none focus:ring-2 focus:ring-rose-300 shadow-lg transition-all"
             />
           </div>
@@ -295,8 +292,6 @@ const SearchResults = () => {
             )}
           </section>
         )}
-
-
       </div>
     </div>
   );

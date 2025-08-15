@@ -1,17 +1,18 @@
 import { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { Search, User, Settings } from "lucide-react";
+import { Search, User } from "lucide-react";
 import CustomerModal from "./CustomerModal";
 import AdminModal from "./Admin";
 import AuthModal from "./AuthModal";
 import useUserRole from "../useUserRole";
 
 const Header = () => {
-  const { user } = useUserRole();
+  const { user, role } = useUserRole();
   const [searchQuery, setSearchQuery] = useState("");
   const [showCustomerModal, setShowCustomerModal] = useState(false);
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showBusinessModal, setShowBusinessModal] = useState(false);
+  const [showClaimModal, setShowClaimModal] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -94,17 +95,40 @@ const Header = () => {
             </button>
           </div>
 
-          {/* Settings/Gear button - For business product management */}
-          <button
-            onClick={() => setShowBusinessModal(true)}
-            className="p-2 bg-gray-100 rounded-full hover:bg-gray-200 transition-colors"
-            title="Business Management - Add Products & Business Info"
-          >
-            <Settings className="w-5 h-5 text-gray-600" />
-          </button>
+          {/* Business Management Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowBusinessModal(true)}
+              className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+              title="Add a new business to the platform"
+            >
+              Add Business
+            </button>
+
+            {/* Claim Business button - Only visible to business users */}
+            {(() => {
+              console.log("Header - Current user:", user?.email);
+              console.log("Header - Current role:", role);
+              console.log("Header - Is business role?", role === "business");
+              return role === "business";
+            })() && (
+              <button
+                onClick={() => setShowClaimModal(true)}
+                className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                title="Claim your business listing"
+              >
+                Claim Business
+              </button>
+            )}
+          </div>
 
           {/* Admin button - Only visible to admin */}
-          {user?.email === "nabira.per1701@gmail.com" && (
+          {(() => {
+            const isAdminUser = user?.email === "nabira.per1701@gmail.com";
+            console.log("Header - User email:", user?.email);
+            console.log("Header - Is admin?", isAdminUser);
+            return isAdminUser;
+          })() && (
             <button
               onClick={() => setShowAdminModal(true)}
               className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
@@ -139,11 +163,32 @@ const Header = () => {
         showBusinessForm={true}
       />
 
-      {/* Admin/Settings Modal - Admin-only features */}
-      <AdminModal
-        isOpen={showAdminModal}
-        onClose={() => setShowAdminModal(false)}
+      {/* Claim Business Modal - For business claiming */}
+      <AuthModal
+        isOpen={showClaimModal}
+        onClose={() => setShowClaimModal(false)}
+        showBusinessDashboard={true}
       />
+
+      {/* Admin/Settings Modal - Admin-only features */}
+      {showAdminModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-[9999]">
+          <div className="bg-white rounded-lg w-full mx-4 max-w-6xl max-h-[90vh] overflow-y-auto">
+            <div className="flex justify-between items-center p-4 border-b">
+              <h2 className="text-lg font-semibold">Admin Dashboard</h2>
+              <button
+                onClick={() => setShowAdminModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="p-4">
+              <AdminModal />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 };

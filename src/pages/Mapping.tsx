@@ -110,7 +110,14 @@ const Mapping: React.FC = () => {
           id: doc.id,
           ...doc.data(),
         })) as Business[];
-        setBusinesses(businessesData);
+
+        // Only show approved/active businesses on the map
+        const activeBusinesses = businessesData.filter(
+          (business: any) =>
+            business.status === "active" || business.status === "claimed"
+        );
+
+        setBusinesses(activeBusinesses);
       } catch (error) {
         console.error("Error fetching businesses:", error);
       }
