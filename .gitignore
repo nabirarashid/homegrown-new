@@ -35,6 +35,13 @@ dist-ssr
 firebase-debug.log*
 firestore-debug.log*
 
+# Firebase configuration files (contain sensitive project info)
+.firebaserc
+firebase.json
+firebase-rules.json
+firestore.rules
+firestore.indexes.json
+
 # Build cache
 .cache/
 
