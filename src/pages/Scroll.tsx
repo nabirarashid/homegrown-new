@@ -184,7 +184,7 @@ const Scroll = () => {
 
     const uid = user.uid;
     const userRef = doc(db, "users", uid);
-    const productName = business.productName;
+    const productName = business.productName || "Unnamed Product";
     const businessName = business.businessName;
     const businessTags = business.tags || [];
 

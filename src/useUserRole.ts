@@ -18,12 +18,9 @@ export default function useUserRole() {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
           const userData = userDoc.data();
-          console.log("User data from database:", userData);
           const userRole = userData.role as UserRole;
-          console.log("Setting role to:", userRole);
           setRole(userRole);
         } else {
-          console.log("User document does not exist");
           setRole(null);
         }
       } catch (error) {

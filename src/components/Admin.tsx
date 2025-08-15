@@ -263,56 +263,47 @@ const AdminDashboard: React.FC = () => {
   };
 
   const approveClaim = async (claim: ClaimRequest) => {
+    if (!user) return;
+    
     try {
-      setLoading(true);
-
-      // Update business with claim info
-      await updateDoc(doc(db, "businesses", claim.businessId), {
+      console.log("Admin - Approving claim:", claim);
+      
+      // Update the business document to mark as claimed
+      const businessRef = doc(db, "businesses", claim.businessId);
+      await updateDoc(businessRef, {
         status: "claimed",
-        claimedBy: claim.claimedBy,
-        claimerEmail: claim.claimerEmail,
-        claimerName: claim.claimerName,
-        claimedAt: new Date(),
-        businessEmail: claim.businessEmail,
+        ownerId: claim.claimedBy, // Set the owner ID
+        claimedBy: claim.claimedBy, // Also set claimedBy for query compatibility
+        claimedAt: new Date().toISOString(),
+        approvedBy: user.uid,
+        approvedAt: new Date().toISOString(),
       });
+      
+      console.log("Admin - Updated business document");
 
-      // Update claim request status
-      await updateDoc(doc(db, "businessClaimRequests", claim.id), {
-        status: "approved",
-        approvedAt: new Date(),
-        approvedBy: user?.uid,
+      // Update the user's role to business
+      const userRef = doc(db, "users", claim.claimedBy);
+      await updateDoc(userRef, {
+        role: "business",
+        businessId: claim.businessId,
+        updatedAt: new Date().toISOString(),
       });
+      
+      console.log("Admin - Updated user role");
 
-      // Update user's role to business if they're not already
-      await setDoc(
-        doc(db, "users", claim.claimedBy),
-        {
-          role: "business",
-          updatedAt: new Date(),
-        },
-        { merge: true }
-      );
+      // Delete the claim request
+      await deleteDoc(doc(db, "businessClaimRequests", claim.id));
+      
+      console.log("Admin - Deleted claim request");
 
-      // Create business profile if doesn't exist
-      await setDoc(
-        doc(db, "businesses", claim.claimedBy),
-        {
-          uid: claim.claimedBy,
-          claimedBusinessId: claim.businessId,
-          claimApprovedAt: new Date(),
-        },
-        { merge: true }
-      );
-
-      alert(
-        `Claim approved! ${claim.claimerName} now owns "${claim.businessName}"`
-      );
-      await fetchAllPendingItems();
+      // Remove from local state
+      setClaimRequests(prev => prev.filter(c => c.id !== claim.id));
+      
+      console.log("Admin - Claim approval complete");
+      alert("Claim approved successfully!");
     } catch (error) {
       console.error("Error approving claim:", error);
       alert("Error approving claim. Please try again.");
-    } finally {
-      setLoading(false);
     }
   };
 

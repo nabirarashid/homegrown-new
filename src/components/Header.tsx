@@ -5,6 +5,9 @@ import CustomerModal from "./CustomerModal";
 import AdminModal from "./Admin";
 import AuthModal from "./AuthModal";
 import useUserRole from "../useUserRole";
+import { useEffect } from "react";
+import { query, collection, where, getDocs } from "firebase/firestore";
+import { db } from "../firebase";
 
 const Header = () => {
   const { user, role } = useUserRole();
@@ -13,8 +16,32 @@ const Header = () => {
   const [showAdminModal, setShowAdminModal] = useState(false);
   const [showBusinessModal, setShowBusinessModal] = useState(false);
   const [showClaimModal, setShowClaimModal] = useState(false);
+  const [hasClaimedBusiness, setHasClaimedBusiness] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Check if user has a claimed business
+  useEffect(() => {
+    const checkClaimedBusiness = async () => {
+      if (user && role === "business") {
+        try {
+          const claimedQuery = query(
+            collection(db, "businesses"),
+            where("claimedBy", "==", user.uid),
+            where("status", "==", "claimed")
+          );
+          const claimedSnapshot = await getDocs(claimedQuery);
+          setHasClaimedBusiness(!claimedSnapshot.empty);
+        } catch (error) {
+          console.error("Error checking claimed business:", error);
+        }
+      } else {
+        setHasClaimedBusiness(false);
+      }
+    };
+
+    checkClaimedBusiness();
+  }, [user, role]);
 
   const handleSearch = () => {
     if (searchQuery.trim() !== "") {
@@ -105,13 +132,18 @@ const Header = () => {
               Add Business
             </button>
 
-            {/* Claim Business button - Only visible to business users */}
-            {(() => {
-              console.log("Header - Current user:", user?.email);
-              console.log("Header - Current role:", role);
-              console.log("Header - Is business role?", role === "business");
-              return role === "business";
-            })() && (
+            {/* Business Management Buttons */}
+            {role === "business" && hasClaimedBusiness ? (
+              // Show "Manage Business" for business owners
+              <button
+                onClick={() => setShowClaimModal(true)}
+                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                title="Manage your business"
+              >
+                Manage Business
+              </button>
+            ) : role === "business" && !hasClaimedBusiness ? (
+              // Show "Claim Business" for business users without a claimed business
               <button
                 onClick={() => setShowClaimModal(true)}
                 className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
@@ -119,16 +151,11 @@ const Header = () => {
               >
                 Claim Business
               </button>
-            )}
+            ) : null}
           </div>
 
           {/* Admin button - Only visible to admin */}
-          {(() => {
-            const isAdminUser = user?.email === "nabira.per1701@gmail.com";
-            console.log("Header - User email:", user?.email);
-            console.log("Header - Is admin?", isAdminUser);
-            return isAdminUser;
-          })() && (
+          {user?.email === "nabira.per1701@gmail.com" && (
             <button
               onClick={() => setShowAdminModal(true)}
               className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"

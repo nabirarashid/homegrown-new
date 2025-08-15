@@ -50,9 +50,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
   });
 
   const [productData, setProductData] = useState({
-    name: "",
+    productName: "",
     description: "",
-    price: "",
+    productPrice: "",
     category: "",
     inStock: true,
     sustainabilityTags: [] as string[],
@@ -73,13 +73,10 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
   const fetchExistingBusinesses = useCallback(async () => {
     setLoadingBusinesses(true);
     try {
-      console.log("Fetching businesses...");
       // Fetch approved businesses (publicly readable)
       const approvedQuery = await getDocs(
         query(collection(db, "businesses"), orderBy("businessName"))
       );
-
-      console.log("Approved businesses:", approvedQuery.docs.length);
 
       const approved = approvedQuery.docs.map((doc) => ({
         id: doc.id,
@@ -93,20 +90,17 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         const pendingQuery = await getDocs(
           query(collection(db, "pendingBusinesses"), orderBy("businessName"))
         );
-        console.log("Pending businesses:", pendingQuery.docs.length);
         
         pending = pendingQuery.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
           status: "pending" as const,
         })) as Business[];
-      } catch (pendingError) {
-        console.log("Cannot access pending businesses (user not admin):", pendingError);
+      } catch {
         // This is expected for non-admin users
       }
 
       const allBusinesses = [...approved, ...pending];
-      console.log("Total businesses:", allBusinesses.length, allBusinesses);
       setExistingBusinesses(allBusinesses);
     } catch (error) {
       console.error("Error fetching businesses:", error);
@@ -195,7 +189,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         ...productData,
         businessId: targetBusinessId,
         businessName: targetBusinessName,
-        price: parseFloat(productData.price) || 0,
+        productPrice: parseFloat(productData.productPrice) || 0,
         productImage: uploadedImageUrl,
         submittedBy: user?.uid || "anonymous",
         submitterEmail: user?.email || "anonymous",
@@ -208,9 +202,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
 
       // Reset product form
       setProductData({
-        name: "",
+        productName: "",
         description: "",
-        price: "",
+        productPrice: "",
         category: "",
         inStock: true,
         sustainabilityTags: [],
@@ -446,11 +440,6 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                     </option>
                   ))}
                 </select>
-                {/* Debug info */}
-                <p className="text-xs text-gray-500 mt-1">
-                  Found {existingBusinesses.length} businesses
-                  {existingBusinesses.length === 0 && !loadingBusinesses && " - No businesses found in database"}
-                </p>
               </div>
 
               <div>
@@ -460,9 +449,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                 <input
                   type="text"
                   required
-                  value={productData.name}
+                  value={productData.productName}
                   onChange={(e) =>
-                    setProductData({ ...productData, name: e.target.value })
+                    setProductData({ ...productData, productName: e.target.value })
                   }
                   placeholder="e.g., Organic Apples"
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
@@ -495,9 +484,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                   </label>
                   <input
                     type="text"
-                    value={productData.price}
+                    value={productData.productPrice}
                     onChange={(e) =>
-                      setProductData({ ...productData, price: e.target.value })
+                      setProductData({ ...productData, productPrice: e.target.value })
                     }
                     placeholder="e.g., $5.99"
                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
@@ -598,9 +587,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
               <input
                 type="text"
                 required
-                value={productData.name}
+                value={productData.productName}
                 onChange={(e) =>
-                  setProductData({ ...productData, name: e.target.value })
+                  setProductData({ ...productData, productName: e.target.value })
                 }
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
               />
@@ -632,9 +621,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                   type="number"
                   step="0.01"
                   required
-                  value={productData.price}
+                  value={productData.productPrice}
                   onChange={(e) =>
-                    setProductData({ ...productData, price: e.target.value })
+                    setProductData({ ...productData, productPrice: e.target.value })
                   }
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
                 />
