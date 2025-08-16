@@ -1,69 +1,61 @@
-# React + TypeScript + Vite
+# homegrown 🌱
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+*swipe, scroll, discover local*
 
-Currently, two official plugins are available:
+## what is homegrown?
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+homegrown is a platform that makes discovering local businesses addictive and fun through a swipeable, scrollable interface inspired by tinder and tiktok. we're here to boost the visibility and success of local businesses while giving shoppers an engaging way to explore their community.
 
-## Expanding the ESLint configuration
+## why homegrown?
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- **support local** - directly impact small businesses in your area
+- **discover hidden gems** - find amazing local spots you never knew existed  
+- **discover effortlessly** - swipe through local businesses like you're browsing social media
+- **endless exploration** - scrollable feed keeps you discovering new spots
 
-```js
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## features
 
-      // Remove tseslint.configs.recommended and replace with this
-      ...tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      ...tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      ...tseslint.configs.stylisticTypeChecked,
+- 📱 **swipe to discover** - tinder-style swiping through local businesses
+- 🔄 **endless scroll** - tiktok-inspired feed of local shops and deals
+- 🏪 **local business profiles** - rich content showcasing 30+ participating businesses
+- ❤️ **like and save** - curate your favorite local spots
+- 🔐 **secure accounts** - safe authentication and user data protection
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## tech stack
+
+**frontend**
+- react - component-based ui
+- typescript - type-safe development  
+- tailwind css - utility-first styling
+
+**backend**
+- firebase auth - user authentication
+- firestore - real-time database
+
+## getting started
+
+```bash
+# clone the repo
+git clone https://github.com/yourusername/homegrown.git
+
+# install dependencies
+cd homegrown
+npm install
+
+# start the development server
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## community impact
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+with 30+ local businesses already on board, homegrown is more than just an app - it's a movement to strengthen local economies and build stronger communities.
 
-export default tseslint.config([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-```
+## contributing
+
+we'd love your help making homegrown even better! check out our contributing guidelines or open an issue to get started.
+
+## others
+
+[![Athena Award Badge](https://img.shields.io/endpoint?url=https%3A%2F%2Faward.athena.hackclub.com%2Fapi%2Fbadge)](https://award.athena.hackclub.com?utm_source=readme)
+
+*made with ❤️ for local communities*
