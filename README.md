@@ -37,8 +37,6 @@ the trickiest part was nailing the swipe mechanics - making them feel as smooth 
 
 **real user feedback:** showing this to actual local business owners was terrifying but eye-opening. they had completely different priorities than i expected (turns out they care more about analytics than fancy animations). learned to build for users, not for my own ego.
 
-**mobile-first reality check:** originally built this desktop-first like an idiot. had to basically rebuild the entire interface when i realized everyone would be using this on their phones. now i always start mobile and work up.
-
 ## getting started
 
 ```bash
