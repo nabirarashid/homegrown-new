@@ -39,8 +39,8 @@ const DistanceDisplay: React.FC<{
 
 async function searchBusiness(searchQuery: string): Promise<Business[]> {
   const queryLower = searchQuery.toLowerCase();
-  const productsRef = collection(db, "products"); // "products" is your Firestore collection name
-  const snapshot = await getDocs(productsRef);
+  const businessesRef = collection(db, "businesses"); // Now using businesses collection
+  const snapshot = await getDocs(businessesRef);
 
   const businesses: Business[] = snapshot.docs.map((doc) => ({
     id: doc.id,

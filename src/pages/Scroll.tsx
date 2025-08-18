@@ -163,10 +163,15 @@ const Scroll = () => {
     const fetchBusinesses = async () => {
       try {
         const snapshot = await getDocs(collection(db, "products"));
-        const fetched = snapshot.docs.map((doc) => ({
+        let fetched = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         })) as Business[];
+        // Shuffle the array
+        for (let i = fetched.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [fetched[i], fetched[j]] = [fetched[j], fetched[i]];
+        }
         setAllBusinesses(fetched);
       } catch (error) {
         console.error("Error fetching businesses:", error);
