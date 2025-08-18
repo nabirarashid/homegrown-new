@@ -60,21 +60,23 @@ const Header = () => {
 
   return (
     <>
-      <header className="flex items-center justify-between px-10 py-4 bg-white border-b border-gray-200">
+      <header className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-10 py-3 sm:py-4 bg-white border-b border-gray-200 w-full">
         {/* Logo and navigation */}
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3 w-full sm:w-auto mb-2 sm:mb-0">
           <div className="w-8 h-8 bg-rose-600 rounded-lg flex items-center justify-center text-white">
             🏠
           </div>
-          <h1 className="text-xl font-bold text-gray-900">HomeGrown</h1>
+          <h1 className="text-lg sm:text-xl font-bold text-gray-900">
+            HomeGrown
+          </h1>
         </div>
 
-        <nav className="flex items-center gap-6">
+        <nav className="flex flex-wrap sm:flex-nowrap items-center gap-2 sm:gap-6 w-full sm:w-auto mb-2 sm:mb-0 justify-center">
           {navItems.map((item) => (
             <Link
               key={item.path}
               to={item.path}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+              className={`px-2 py-1 sm:px-3 sm:py-2 rounded-lg text-xs sm:text-sm font-medium transition-colors ${
                 location.pathname === item.path
                   ? "bg-rose-600 text-white"
                   : "text-gray-700 hover:bg-gray-100 hover:text-rose-600"
@@ -86,11 +88,9 @@ const Header = () => {
         </nav>
 
         {/* Actions */}
-
-        {/* Actions */}
-        <div className="flex items-center gap-6">
-          <div className="flex items-center bg-gray-100 rounded-full px-2 py-1 shadow-sm">
-            <Search className="text-gray-400 w-8 h-4 mr-1" />
+        <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-6 w-full sm:w-auto">
+          <div className="flex items-center bg-gray-100 rounded-full px-2 py-1 shadow-sm w-full sm:w-auto mb-2 sm:mb-0">
+            <Search className="text-gray-400 w-5 h-5 mr-1" />
             <input
               type="text"
               placeholder="Search"
@@ -99,7 +99,7 @@ const Header = () => {
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleSearch();
               }}
-              className="bg-transparent outline-none text-sm px-1 w-24"
+              className="bg-transparent outline-none text-xs sm:text-sm px-1 w-full sm:w-24"
             />
             <button
               onClick={handleSearch}
@@ -123,10 +123,10 @@ const Header = () => {
           </div>
 
           {/* Business Management Buttons */}
-          <div className="flex gap-2">
+          <div className="flex gap-2 w-full sm:w-auto mb-2 sm:mb-0 justify-center">
             <button
               onClick={() => setShowBusinessModal(true)}
-              className="px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-sm font-medium"
+              className="px-2 py-1 sm:px-3 sm:py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors text-xs sm:text-sm font-medium"
               title="Add a new business to the platform"
             >
               Add Business
@@ -137,7 +137,7 @@ const Header = () => {
               // Show "Manage Business" for business owners
               <button
                 onClick={() => setShowClaimModal(true)}
-                className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                className="px-2 py-1 sm:px-3 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium"
                 title="Manage your business"
               >
                 Manage Business
@@ -146,7 +146,7 @@ const Header = () => {
               // Show "Claim Business" for business users without a claimed business
               <button
                 onClick={() => setShowClaimModal(true)}
-                className="px-3 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-sm font-medium"
+                className="px-2 py-1 sm:px-3 sm:py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors text-xs sm:text-sm font-medium"
                 title="Claim your business listing"
               >
                 Claim Business
@@ -158,7 +158,7 @@ const Header = () => {
           {user?.email === "nabira.per1701@gmail.com" && (
             <button
               onClick={() => setShowAdminModal(true)}
-              className="px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+              className="px-2 py-1 sm:px-3 sm:py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-xs sm:text-sm font-medium"
               title="Admin Dashboard - Manage Business Requests"
             >
               Admin
@@ -168,11 +168,13 @@ const Header = () => {
           {/* Profile button - For general login/role selection */}
           <button
             onClick={() => setShowCustomerModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors"
+            className="flex items-center gap-1 sm:gap-2 px-2 py-1 sm:px-4 sm:py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700 transition-colors text-xs sm:text-sm"
             title="Login - Customer or Business"
           >
             <User className="w-4 h-4 text-white" />
-            <span className="text-sm font-medium text-white">Profile</span>
+            <span className="text-xs sm:text-sm font-medium text-white">
+              Profile
+            </span>
           </button>
         </div>
       </header>
