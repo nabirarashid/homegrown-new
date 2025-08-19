@@ -532,8 +532,8 @@ const Scroll = () => {
         </div>
       </div>
 
-      {/* Swipe Statistics */}
-      <div className="fixed top-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg text-xs">
+  {/* Swipe Statistics */}
+  <div className="fixed bottom-24 right-2 transform -translate-x-1/2 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg text-xs">
         <div className="flex items-center gap-2 text-green-600 mb-1">
           <Heart className="w-3 h-3 fill-current" />
           <span>Liked: {swipeHistory.liked.length}</span>
