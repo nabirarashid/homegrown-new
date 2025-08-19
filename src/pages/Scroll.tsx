@@ -1,10 +1,4 @@
-import React, {
-  useState,
-  useRef,
-  useEffect,
-  useMemo,
-  useCallback,
-} from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { Heart, X, MapPin, Clock, Phone, Globe } from "lucide-react";
 import { db, auth } from "../firebase";
 import {
@@ -119,13 +113,7 @@ const Scroll = () => {
   const [locationPermission, setLocationPermission] = useState<
     "granted" | "denied" | "prompt"
   >("prompt");
-  const [swipeHistory, setSwipeHistory] = useState<{
-    liked: { business: Business; tags: string[]; timestamp: Date }[];
-    rejected: { business: Business; tags: string[]; timestamp: Date }[];
-  }>({
-    liked: [],
-    rejected: [],
-  });
+  // Removed unused swipeHistory state
   const containerRef = useRef<HTMLDivElement>(null);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
@@ -256,31 +244,11 @@ const Scroll = () => {
       setIsAnimating(true);
       setSwipeDirection(direction);
 
-      const businessTags = currentBusiness?.tags || [];
-      const timestamp = new Date();
-
       setTimeout(() => {
         if (direction === "like") {
           setLikedBusinesses((prev) => [...prev, currentBusiness]);
-          setSwipeHistory((prev) => ({
-            ...prev,
-            liked: [
-              ...prev.liked,
-              { business: currentBusiness, tags: businessTags, timestamp },
-            ],
-          }));
           updateLikedBusiness(currentBusiness);
-        } else {
-          // Business was rejected, could track this in future if needed
-          setSwipeHistory((prev) => ({
-            ...prev,
-            rejected: [
-              ...prev.rejected,
-              { business: currentBusiness, tags: businessTags, timestamp },
-            ],
-          }));
         }
-
         setCurrentIndex((prev) => (prev + 1) % allBusinesses.length);
         setSwipeDirection(null);
         setIsAnimating(false);
@@ -288,22 +256,6 @@ const Scroll = () => {
     },
     [isAnimating, currentBusiness, allBusinesses.length, updateLikedBusiness]
   );
-
-  // Get user's preference tags from swipe history
-  const getUserPreferenceTags = useMemo(() => {
-    const tagCounts: { [key: string]: number } = {};
-
-    swipeHistory.liked.forEach(({ tags }) => {
-      tags.forEach((tag) => {
-        tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-      });
-    });
-
-    return Object.entries(tagCounts)
-      .sort(([, a], [, b]) => b - a)
-      .slice(0, 10)
-      .map(([tag]) => tag);
-  }, [swipeHistory.liked]);
 
   // Don't render anything if no businesses are loaded yet
   if (!allBusinesses.length || !currentBusiness) {
