@@ -11,7 +11,7 @@ interface LoginProps {
 export default function Login({ requiredRole, onLoginSuccess }: LoginProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showRoleSelection, setShowRoleSelection] = useState(!requiredRole);
+  const [showRoleSelection] = useState(!requiredRole);
 
   const handleLogin = async (role?: "business" | "customer") => {
     setLoading(true);
