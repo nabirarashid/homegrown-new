@@ -532,33 +532,6 @@ const Scroll = () => {
         </div>
       </div>
 
-  {/* Swipe Statistics */}
-  <div className="fixed bottom-24 right-2 transform -translate-x-1/2 bg-white/90 backdrop-blur-sm rounded-lg p-3 shadow-lg text-xs">
-        <div className="flex items-center gap-2 text-green-600 mb-1">
-          <Heart className="w-3 h-3 fill-current" />
-          <span>Liked: {swipeHistory.liked.length}</span>
-        </div>
-        <div className="flex items-center gap-2 text-red-600 mb-1">
-          <X className="w-3 h-3" />
-          <span>Passed: {swipeHistory.rejected.length}</span>
-        </div>
-        {getUserPreferenceTags.length > 0 && (
-          <div className="mt-2 pt-2 border-t">
-            <p className="text-gray-600 mb-1">Top tags:</p>
-            <div className="flex flex-wrap gap-1">
-              {getUserPreferenceTags.slice(0, 3).map((tag, index) => (
-                <span
-                  key={index}
-                  className="px-1 py-0.5 bg-rose-100 text-rose-700 rounded text-xs"
-                >
-                  {tag}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
-      </div>
-
       {/* Liked Businesses Counter */}
       {likedBusinesses.length > 0 && (
         <div className="fixed bottom-4 right-4 bg-green-500 text-white px-4 py-2 rounded-full shadow-lg">
