@@ -211,11 +211,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
       }
 
       // Determine which business to use based on current context
-      const targetBusinessId = productData.businessId || selectedBusinessId;
-      const targetBusinessName = productData.businessId
-        ? existingBusinesses.find((b) => b.id === productData.businessId)
-            ?.businessName || "Unknown Business"
-        : businessData.businessName;
+      const targetBusinessId = productData.businessId;
+      const targetBusinessName = existingBusinesses.find((b) => b.id === productData.businessId)
+            ?.businessName || "Unknown Business";
 
       if (!targetBusinessId) {
         alert("Please select a business first.");
@@ -270,32 +268,34 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         </p>
       </div>
 
-      {/* Tab Selection */}
-      <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
-        <button
-          onClick={() => setActiveTab("business")}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === "business"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
-        >
-          Add New Business
-        </button>
-        <button
-          onClick={() => setActiveTab("product")}
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === "product"
-              ? "bg-white text-gray-900 shadow-sm"
-              : "text-gray-600 hover:text-gray-900"
-          }`}
-        >
-          Add Product to Existing Business
-        </button>
-      </div>
+      {/* Tab Selection - Only show when not in product form mode */}
+      {!showProductForm && (
+        <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
+          <button
+            onClick={() => setActiveTab("business")}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "business"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Add New Business
+          </button>
+          <button
+            onClick={() => setActiveTab("product")}
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              activeTab === "product"
+                ? "bg-white text-gray-900 shadow-sm"
+                : "text-gray-600 hover:text-gray-900"
+            }`}
+          >
+            Add Product to Existing Business
+          </button>
+        </div>
+      )}
 
+      {/* Business Form */}
       {activeTab === "business" && !showProductForm && (
-        // Business Form
         <div>
           <h4 className="text-md font-semibold mb-4">Business Information</h4>
           <form onSubmit={handleBusinessSubmit} className="space-y-4">
@@ -519,8 +519,8 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         </div>
       )}
 
-      {activeTab === "product" && (
-        // Product Form for existing businesses
+      {/* Product Form for existing businesses - Only show when not in showProductForm mode */}
+      {activeTab === "product" && !showProductForm && (
         <div>
           <h4 className="text-md font-semibold mb-4">
             Add Product to Existing Business
@@ -701,198 +701,37 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         </div>
       )}
 
+      {/* Success message after business submission */}
       {showProductForm && (
-        // Product Form (shown after business is submitted)
-        <div>
+        <div className="text-center py-8">
           <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg">
             <h4 className="text-md font-semibold text-green-800 mb-1">
-              Business Submitted!
+              Business Submitted Successfully!
             </h4>
             <p className="text-sm text-green-700">
-              Now add products to "
-              {businessData.businessName || "your business"}". Products will
-              also need approval.
+              Your business "{businessData.businessName || 'submission'}" has been sent for admin approval.
+              You can now add products to existing businesses using the "Add Product to Existing Business" tab.
             </p>
           </div>
-
-          <h4 className="text-md font-semibold mb-4">Add Products</h4>
-          <form onSubmit={handleProductSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Name *
-              </label>
-              <input
-                type="text"
-                required
-                value={productData.productName}
-                onChange={(e) =>
-                  setProductData({
-                    ...productData,
-                    productName: e.target.value,
-                  })
-                }
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Description
-              </label>
-              <textarea
-                rows={2}
-                value={productData.description}
-                onChange={(e) =>
-                  setProductData({
-                    ...productData,
-                    description: e.target.value,
-                  })
-                }
-                className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
-              />
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Price ($) *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  required
-                  value={productData.productPrice}
-                  onChange={(e) =>
-                    setProductData({
-                      ...productData,
-                      productPrice: e.target.value,
-                    })
-                  }
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Category
-                </label>
-                <input
-                  type="text"
-                  value={productData.category}
-                  onChange={(e) =>
-                    setProductData({ ...productData, category: e.target.value })
-                  }
-                  placeholder="e.g., handmade, ceramic"
-                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sustainability Tags
-              </label>
-              <div className="grid grid-cols-3 gap-3">
-                {["Green Certified", "Locally Sourced", "Zero Waste"].map(
-                  (tag) => (
-                    <label key={tag} className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        checked={productData.sustainabilityTags.includes(tag)}
-                        onChange={(e) => {
-                          if (e.target.checked) {
-                            setProductData({
-                              ...productData,
-                              sustainabilityTags: [
-                                ...productData.sustainabilityTags,
-                                tag,
-                              ],
-                            });
-                          } else {
-                            setProductData({
-                              ...productData,
-                              sustainabilityTags:
-                                productData.sustainabilityTags.filter(
-                                  (t) => t !== tag
-                                ),
-                            });
-                          }
-                        }}
-                        className="rounded border-gray-300 text-green-600 focus:ring-green-500"
-                      />
-                      <span className="text-sm text-gray-700">{tag}</span>
-                    </label>
-                  )
-                )}
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Product Image
-              </label>
-              <div
-                {...getRootProps()}
-                className={`border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-rose-400 transition-colors ${
-                  isDragActive ? "border-rose-400 bg-rose-50" : ""
-                }`}
-              >
-                <input {...getInputProps()} />
-                {imageFile ? (
-                  <p className="text-rose-600">Selected: {imageFile.name}</p>
-                ) : (
-                  <div>
-                    <p className="text-gray-600">
-                      Drag & drop an image here, or click to select
-                    </p>
-                    <p className="text-sm text-gray-400 mt-1">
-                      PNG, JPG, GIF up to 10MB
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="inStock"
-                checked={productData.inStock}
-                onChange={(e) =>
-                  setProductData({ ...productData, inStock: e.target.checked })
-                }
-                className="mr-2"
-              />
-              <label
-                htmlFor="inStock"
-                className="text-sm font-medium text-gray-700"
-              >
-                In Stock
-              </label>
-            </div>
-
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  // Reset everything and close
-                  setShowProductForm(false);
-                  setSelectedBusinessId("");
-                  onClose();
-                }}
-                className="flex-1 px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
-              >
-                Done
-              </button>
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 disabled:opacity-50"
-              >
-                {loading ? "Adding..." : "Add Product"}
-              </button>
-            </div>
-          </form>
+          
+          <div className="flex gap-3 justify-center">
+            <button
+              onClick={() => {
+                setActiveTab("product");
+                setShowProductForm(false);
+                setSelectedBusinessId("");
+              }}
+              className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700"
+            >
+              Add Products to Businesses
+            </button>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 border border-gray-300 rounded-lg hover:bg-gray-50"
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
     </div>
