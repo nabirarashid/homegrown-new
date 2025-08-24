@@ -20,6 +20,8 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imageUrl, setImageUrl] = useState("");
+  const [businessImageFile, setBusinessImageFile] = useState<File | null>(null);
+  const [businessImageUrl, setBusinessImageUrl] = useState("");
   const [showProductForm, setShowProductForm] = useState(false);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>("");
   interface Business {
@@ -63,9 +65,21 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
   const onDrop = (acceptedFiles: File[]) => {
     setImageFile(acceptedFiles[0]);
   };
+  const onBusinessImageDrop = (acceptedFiles: File[]) => {
+    setBusinessImageFile(acceptedFiles[0]);
+  };
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
+    accept: { "image/*": [] },
+    multiple: false,
+  });
+  const {
+    getRootProps: getBusinessImageRootProps,
+    getInputProps: getBusinessImageInputProps,
+    isDragActive: isBusinessImageDragActive,
+  } = useDropzone({
+    onDrop: onBusinessImageDrop,
     accept: { "image/*": [] },
     multiple: false,
   });
@@ -118,9 +132,23 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
     e.preventDefault();
     setLoading(true);
     try {
+      let finalBusinessImageUrl = "";
+      if (businessImageFile) {
+        const storage = getStorage();
+        const storageRef = ref(
+          storage,
+          `businessImages/${user?.uid || "anonymous"}_${Date.now()}_${businessImageFile.name}`
+        );
+        await uploadBytes(storageRef, businessImageFile);
+        finalBusinessImageUrl = await getDownloadURL(storageRef);
+      } else if (businessImageUrl.trim()) {
+        finalBusinessImageUrl = businessImageUrl.trim();
+      }
+
       // Add business to "pendingBusinesses" collection for admin approval
       const docRef = await addDoc(collection(db, "pendingBusinesses"), {
         ...businessData,
+        image: finalBusinessImageUrl,
         location: {
           address: businessData.address,
           // Coordinates will be geocoded by the mapping service when needed
@@ -148,6 +176,8 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         website: "",
         hours: "",
       });
+      setBusinessImageFile(null);
+      setBusinessImageUrl("");
     } catch (error) {
       console.error("Error submitting business:", error);
       alert("Error submitting business. Please try again.");
@@ -386,7 +416,42 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
               />
             </div>
 
-            <div className="flex gap-3">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Business Image
+              </label>
+              <div className="mb-2">
+                <input
+                  type="url"
+                  value={businessImageUrl}
+                  onChange={e => setBusinessImageUrl(e.target.value)}
+                  placeholder="Paste image link (https://...) or upload below"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
+                />
+              </div>
+              <div
+                {...getBusinessImageRootProps()}
+                className={`border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-rose-400 transition-colors ${
+                  isBusinessImageDragActive ? "border-rose-400 bg-rose-50" : ""
+                }`}
+              >
+                <input {...getBusinessImageInputProps()} />
+                {businessImageFile ? (
+                  <p className="text-rose-600">Selected: {businessImageFile.name}</p>
+                ) : (
+                  <div>
+                    <p className="text-gray-600">
+                      Drag & drop an image here, or click to select
+                    </p>
+                    <p className="text-sm text-gray-400 mt-1">
+                      PNG, JPG, GIF up to 10MB
+                    </p>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500 mt-1">You can either upload an image file or paste a direct image link above. If both are provided, the uploaded file will be used.</p>
+            </div>
+            <div className="flex gap-3 mt-4">
               <button
                 type="button"
                 onClick={onClose}
