@@ -50,6 +50,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
     phone: "",
     website: "",
     hours: "",
+    tags: [] as string[],
   });
 
   const [productData, setProductData] = useState({
@@ -105,7 +106,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         const pendingQuery = await getDocs(
           query(collection(db, "pendingBusinesses"), orderBy("businessName"))
         );
-        
+
         pending = pendingQuery.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
@@ -137,7 +138,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         const storage = getStorage();
         const storageRef = ref(
           storage,
-          `businessImages/${user?.uid || "anonymous"}_${Date.now()}_${businessImageFile.name}`
+          `businessImages/${user?.uid || "anonymous"}_${Date.now()}_${
+            businessImageFile.name
+          }`
         );
         await uploadBytes(storageRef, businessImageFile);
         finalBusinessImageUrl = await getDownloadURL(storageRef);
@@ -149,6 +152,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
       const docRef = await addDoc(collection(db, "pendingBusinesses"), {
         ...businessData,
         image: finalBusinessImageUrl,
+        tags: businessData.tags,
         location: {
           address: businessData.address,
           // Coordinates will be geocoded by the mapping service when needed
@@ -168,14 +172,15 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
 
       // Reset business form
       setBusinessData({
-        businessName: "",
-        description: "",
-        category: "",
-        address: "",
-        phone: "",
-        website: "",
-        hours: "",
-      });
+      businessName: "",
+      description: "",
+      category: "",
+      address: "",
+      phone: "",
+      website: "",
+      hours: "",
+      tags: [],
+    });
       setBusinessImageFile(null);
       setBusinessImageUrl("");
     } catch (error) {
@@ -243,8 +248,8 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         sustainabilityTags: [],
         businessId: "",
       });
-  setImageFile(null);
-  setImageUrl("");
+      setImageFile(null);
+      setImageUrl("");
     } catch (error) {
       console.error("Error adding product:", error);
       alert("Error adding product. Please try again.");
@@ -347,7 +352,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
                 >
                   <option value="">Select category</option>
-                  <option value="restaurant">Restaurant</option>
+                  <option value="restaurant">Food</option>
                   <option value="retail">Retail</option>
                   <option value="services">Services</option>
                   <option value="grocery">Grocery</option>
@@ -369,6 +374,34 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
                 />
               </div>
+            </div>
+
+            {/* Sustainability Tags */}
+            <div className="py-4">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Sustainability Tags
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {["Green Certified", "Locally Sourced", "Zero-Waste"].map((tag) => (
+                  <label key={tag} className="flex items-center gap-3 bg-green-50 rounded-lg px-4 py-3 shadow-sm border border-green-200">
+                    <input
+                      type="checkbox"
+                      className="form-checkbox h-5 w-5 text-green-600 focus:ring-green-500"
+                      checked={businessData.tags.includes(tag)}
+                      onChange={() => {
+                        setBusinessData((prev) => {
+                          const tags = prev.tags.includes(tag)
+                            ? prev.tags.filter((t) => t !== tag)
+                            : [...prev.tags, tag];
+                          return { ...prev, tags };
+                        });
+                      }}
+                    />
+                    <span className="text-base font-medium text-green-800">{tag}</span>
+                  </label>
+                ))}
+              </div>
+              <p className="text-xs text-green-700 mt-3">Select all that apply. These tags help users find sustainable businesses.</p>
             </div>
 
             <div>
@@ -424,7 +457,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                 <input
                   type="url"
                   value={businessImageUrl}
-                  onChange={e => setBusinessImageUrl(e.target.value)}
+                  onChange={(e) => setBusinessImageUrl(e.target.value)}
                   placeholder="Paste image link (https://...) or upload below"
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
                 />
@@ -437,7 +470,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
               >
                 <input {...getBusinessImageInputProps()} />
                 {businessImageFile ? (
-                  <p className="text-rose-600">Selected: {businessImageFile.name}</p>
+                  <p className="text-rose-600">
+                    Selected: {businessImageFile.name}
+                  </p>
                 ) : (
                   <div>
                     <p className="text-gray-600">
@@ -449,7 +484,10 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                   </div>
                 )}
               </div>
-              <p className="text-xs text-gray-500 mt-1">You can either upload an image file or paste a direct image link above. If both are provided, the uploaded file will be used.</p>
+              <p className="text-xs text-gray-500 mt-1">
+                You can either upload an image file or paste a direct image link
+                above. If both are provided, the uploaded file will be used.
+              </p>
             </div>
             <div className="flex gap-3 mt-4">
               <button
@@ -520,7 +558,10 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                   required
                   value={productData.productName}
                   onChange={(e) =>
-                    setProductData({ ...productData, productName: e.target.value })
+                    setProductData({
+                      ...productData,
+                      productName: e.target.value,
+                    })
                   }
                   placeholder="e.g., Organic Apples"
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
@@ -555,7 +596,10 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                     type="text"
                     value={productData.productPrice}
                     onChange={(e) =>
-                      setProductData({ ...productData, productPrice: e.target.value })
+                      setProductData({
+                        ...productData,
+                        productPrice: e.target.value,
+                      })
                     }
                     placeholder="e.g., $5.99"
                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
@@ -594,7 +638,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                   <input
                     type="url"
                     value={imageUrl}
-                    onChange={e => setImageUrl(e.target.value)}
+                    onChange={(e) => setImageUrl(e.target.value)}
                     placeholder="Paste image link (https://...) or upload below"
                     className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
                   />
@@ -619,7 +663,11 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                     </div>
                   )}
                 </div>
-                <p className="text-xs text-gray-500 mt-1">You can either upload an image file or paste a direct image link above. If both are provided, the uploaded file will be used.</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  You can either upload an image file or paste a direct image
+                  link above. If both are provided, the uploaded file will be
+                  used.
+                </p>
               </div>
 
               <div className="flex gap-3">
@@ -668,7 +716,10 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                 required
                 value={productData.productName}
                 onChange={(e) =>
-                  setProductData({ ...productData, productName: e.target.value })
+                  setProductData({
+                    ...productData,
+                    productName: e.target.value,
+                  })
                 }
                 className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
               />
@@ -702,7 +753,10 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                   required
                   value={productData.productPrice}
                   onChange={(e) =>
-                    setProductData({ ...productData, productPrice: e.target.value })
+                    setProductData({
+                      ...productData,
+                      productPrice: e.target.value,
+                    })
                   }
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
                 />

@@ -225,8 +225,7 @@ const SustainableShoppingPage = () => {
   }
 
   const BusinessCard = ({ business }: { business: Business }) => (
-    <div
-      className="group cursor-pointer relative"
+    <div className="group cursor-pointer relative"
       onClick={() => {
         if (business.website) {
           window.open(business.website, "_blank");
@@ -269,7 +268,14 @@ const SustainableShoppingPage = () => {
             </span>
           ))}
         </div>
-  {/* removed rating */}
+        {/* Distance display */}
+        <div className="mt-2 text-xs text-stone-500">
+          Distance: {business.location && userLocation ? (
+            <DistanceDisplay location={business.location} userLocation={userLocation} />
+          ) : (
+            "N/A"
+          )}
+        </div>
       </div>
     </div>
   );
@@ -394,27 +400,6 @@ const SustainableShoppingPage = () => {
             {filterBusinesses(zeroWasteBusinesses).map((business: Business) => (
               <BusinessCard key={business.id} business={business} />
             ))}
-          </div>
-        </section>
-
-        {/* Other Sustainable Businesses */}
-        <section className="mb-16">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl font-bold text-stone-800 mb-4">
-              Other Sustainable Businesses
-            </h2>
-            <p className="text-stone-600 text-lg leading-relaxed max-w-2xl mx-auto">
-              Discover more businesses committed to sustainable practices,
-              including organic products, eco-friendly services, and
-              environmentally conscious operations.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {filterBusinesses(otherSustainableBusinesses).map(
-              (business: Business) => (
-                <BusinessCard key={business.id} business={business} />
-              )
-            )}
           </div>
         </section>
       </div>

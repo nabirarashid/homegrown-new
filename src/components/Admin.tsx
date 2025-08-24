@@ -141,10 +141,16 @@ const AdminDashboard: React.FC = () => {
         orderBy("createdAt", "desc")
       );
       const productsSnapshot = await getDocs(productsQuery);
-      const productsData = productsSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      })) as PendingProduct[];
+      const productsData = productsSnapshot.docs.map((doc) => {
+        const data = doc.data();
+        // Map productName to name for compatibility
+        return {
+          id: doc.id,
+          ...data,
+          name: data.productName || data.name || "Unnamed Product",
+          productPrice: typeof data.productPrice === "number" ? data.productPrice : (typeof data.price === "number" ? data.price : 0),
+        };
+      }) as PendingProduct[];
       setPendingProducts(productsData);
 
       // Fetch claim requests
@@ -587,7 +593,7 @@ const AdminDashboard: React.FC = () => {
                           {product.name}
                         </h3>
                         <span className="text-2xl font-bold text-green-600">
-                          ${product.price.toFixed(2)}
+                          ${typeof product.productPrice === "number" ? product.productPrice.toFixed(2) : "N/A"}
                         </span>
                         {product.submittedByOwner && (
                           <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
