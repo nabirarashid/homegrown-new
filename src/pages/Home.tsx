@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Sparkles } from "lucide-react";
 import { db } from "../firebase";
 import { collection, getDocs, limit, query } from "firebase/firestore";
 import { PLACEHOLDER_IMAGES } from "../utils/placeholders";
@@ -123,34 +122,11 @@ const Home = () => {
     </section>
   );
 
-  const ReadyToScroll = () => (
-    <section className="mb-12">
-      <div className="mx-4 bg-rose-700 rounded-2xl p-8 text-white text-center">
-        <div className="flex justify-center mb-4">
-          <Sparkles size={48} className="text-white opacity-80" />
-        </div>
-        <h2 className="text-3xl font-bold mb-4">Ready to Scroll?</h2>
-        <p className="text-lg mb-6 opacity-90">
-          Discover amazing local businesses by swiping through our curated
-          selection
-        </p>
-        <button
-          onClick={() => navigate("/scroll")}
-          className="bg-white text-rose-800 font-semibold px-8 py-3 rounded-full hover:bg-gray-100 transition-colors text-lg inline-flex items-center gap-2"
-        >
-          Start Scrolling
-          <ArrowRight size={20} />
-        </button>
-      </div>
-    </section>
-  );
-
   return (
     <div className="min-h-screen bg-rose-50 font-sans">
       <main className="max-w-6xl mx-auto py-8">
         <HeroSection />
         <FeaturedBusinesses />
-        <ReadyToScroll />
       </main>
     </div>
   );
