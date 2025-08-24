@@ -19,6 +19,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
   const [user] = useAuthState(auth);
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imageUrl, setImageUrl] = useState("");
   const [showProductForm, setShowProductForm] = useState(false);
   const [selectedBusinessId, setSelectedBusinessId] = useState<string>("");
   interface Business {
@@ -159,7 +160,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
     e.preventDefault();
     setLoading(true);
     try {
-      let uploadedImageUrl = "";
+      let finalImageUrl = "";
       if (imageFile) {
         const storage = getStorage();
         const storageRef = ref(
@@ -169,7 +170,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
           }`
         );
         await uploadBytes(storageRef, imageFile);
-        uploadedImageUrl = await getDownloadURL(storageRef);
+        finalImageUrl = await getDownloadURL(storageRef);
+      } else if (imageUrl.trim()) {
+        finalImageUrl = imageUrl.trim();
       }
 
       // Determine which business to use based on current context
@@ -190,7 +193,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         businessId: targetBusinessId,
         businessName: targetBusinessName,
         productPrice: parseFloat(productData.productPrice) || 0,
-        productImage: uploadedImageUrl,
+        productImage: finalImageUrl,
         submittedBy: user?.uid || "anonymous",
         submitterEmail: user?.email || "anonymous",
         submitterName: user?.displayName || "anonymous",
@@ -210,7 +213,8 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         sustainabilityTags: [],
         businessId: "",
       });
-      setImageFile(null);
+  setImageFile(null);
+  setImageUrl("");
     } catch (error) {
       console.error("Error adding product:", error);
       alert("Error adding product. Please try again.");
@@ -521,6 +525,15 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Product Image
                 </label>
+                <div className="mb-2">
+                  <input
+                    type="url"
+                    value={imageUrl}
+                    onChange={e => setImageUrl(e.target.value)}
+                    placeholder="Paste image link (https://...) or upload below"
+                    className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-rose-500"
+                  />
+                </div>
                 <div
                   {...getRootProps()}
                   className={`border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer hover:border-rose-400 transition-colors ${
@@ -541,6 +554,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                     </div>
                   )}
                 </div>
+                <p className="text-xs text-gray-500 mt-1">You can either upload an image file or paste a direct image link above. If both are provided, the uploaded file will be used.</p>
               </div>
 
               <div className="flex gap-3">
