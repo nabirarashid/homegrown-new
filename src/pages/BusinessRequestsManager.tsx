@@ -161,7 +161,7 @@ const BusinessRequestsManager: React.FC = () => {
             Business Requests Manager
           </h1>
           <p className="text-gray-600">
-            Review and manage business access requests from users.
+            Manage business access requests from users.
           </p>
         </div>
 
@@ -262,7 +262,7 @@ const BusinessRequestsManager: React.FC = () => {
               </h3>
               <p className="text-gray-500">
                 {filter === "pending"
-                  ? "All caught up! No pending requests to review."
+                  ? "All caught up! No pending requests."
                   : "No requests match the current filter."}
               </p>
             </div>

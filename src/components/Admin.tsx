@@ -335,22 +335,22 @@ const AdminDashboard: React.FC = () => {
 
   const filteredBusinesses = pendingBusinesses.filter(
     (business) =>
-      business.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      business.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      business.submitterName.toLowerCase().includes(searchTerm.toLowerCase())
+      (business.businessName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (business.category || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (business.submitterName || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredProducts = pendingProducts.filter(
     (product) =>
-      product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      product.submitterName.toLowerCase().includes(searchTerm.toLowerCase())
+      (product.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.businessName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (product.submitterName || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const filteredClaims = claimRequests.filter(
     (claim) =>
-      claim.businessName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      claim.claimerName.toLowerCase().includes(searchTerm.toLowerCase())
+      (claim.businessName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (claim.claimerName || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (loading) {
@@ -369,7 +369,7 @@ const AdminDashboard: React.FC = () => {
           Admin Dashboard
         </h1>
         <p className="text-gray-600">
-          Review and approve community contributions
+          Approve community contributions
         </p>
       </div>
 
@@ -474,7 +474,7 @@ const AdminDashboard: React.FC = () => {
           {filteredBusinesses.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
               <Building className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600">No pending businesses to review</p>
+              <p className="text-gray-600">No pending businesses</p>
             </div>
           ) : (
             filteredBusinesses.map((business) => (
@@ -563,7 +563,7 @@ const AdminDashboard: React.FC = () => {
           {filteredProducts.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
               <Package className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600">No pending products to review</p>
+              <p className="text-gray-600">No pending products</p>
             </div>
           ) : (
             filteredProducts.map((product) => (
@@ -677,7 +677,7 @@ const AdminDashboard: React.FC = () => {
           {filteredClaims.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
               <Award className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-              <p className="text-gray-600">No pending claims to review</p>
+              <p className="text-gray-600">No pending claims</p>
             </div>
           ) : (
             filteredClaims.map((claim) => (

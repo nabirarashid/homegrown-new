@@ -431,7 +431,7 @@ const BusinessDashboard: React.FC = () => {
         createdAt: new Date(),
       });
 
-      alert("Claim request submitted! We'll review and contact you soon.");
+  alert("Claim request submitted! We'll contact you soon.");
       setShowClaimForm(false);
       setSelectedBusiness(null);
       setClaimData({
@@ -470,14 +470,14 @@ const BusinessDashboard: React.FC = () => {
             Claim Pending Approval
           </h3>
           <p className="text-gray-600">
-            Your business claim request has been submitted and is awaiting admin review.
+            Your business claim request has been submitted and is awaiting admin approval.
           </p>
         </div>
         
         <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
           <h4 className="text-yellow-800 font-medium mb-2">What happens next?</h4>
           <ul className="text-yellow-700 text-sm space-y-1">
-            <li>• Our team will review your claim request</li>
+            <li>• Our team will process your claim request</li>
             <li>• We may contact you for additional verification</li>
             <li>• You'll be notified once your claim is approved</li>
             <li>• After approval, you'll have full access to manage your business</li>

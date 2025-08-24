@@ -61,7 +61,7 @@ interface Business {
   image?: string;
   productImage?: string;
   tags?: string[];
-  rating?: number;
+  // Removed rating property
   location?: {
     lat: number;
     lng: number;
@@ -197,19 +197,7 @@ const SearchResults = () => {
             </span>
           ))}
         </div>
-        {business.rating && (
-          <div className="text-sm text-gray-500 mt-2">
-            ⭐ {business.rating} •{" "}
-            {business.location ? (
-              <DistanceDisplay
-                location={business.location}
-                userLocation={userLocation}
-              />
-            ) : (
-              "Distance N/A"
-            )}
-          </div>
-        )}
+    {/* removed rating */}
       </div>
     </div>
   );
