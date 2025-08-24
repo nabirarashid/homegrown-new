@@ -148,7 +148,10 @@ const AdminDashboard: React.FC = () => {
           id: doc.id,
           ...data,
           name: data.productName || data.name || "Unnamed Product",
-          productPrice: typeof data.productPrice === "number" ? data.productPrice : (typeof data.price === "number" ? data.price : 0),
+          price:
+            typeof data.productPrice === "number"
+              ? data.productPrice
+              : data.price,
         };
       }) as PendingProduct[];
       setPendingProducts(productsData);
@@ -270,10 +273,10 @@ const AdminDashboard: React.FC = () => {
 
   const approveClaim = async (claim: ClaimRequest) => {
     if (!user) return;
-    
+
     try {
       console.log("Admin - Approving claim:", claim);
-      
+
       // Update the business document to mark as claimed
       const businessRef = doc(db, "businesses", claim.businessId);
       await updateDoc(businessRef, {
@@ -284,7 +287,7 @@ const AdminDashboard: React.FC = () => {
         approvedBy: user.uid,
         approvedAt: new Date().toISOString(),
       });
-      
+
       console.log("Admin - Updated business document");
 
       // Update the user's role to business
@@ -294,17 +297,17 @@ const AdminDashboard: React.FC = () => {
         businessId: claim.businessId,
         updatedAt: new Date().toISOString(),
       });
-      
+
       console.log("Admin - Updated user role");
 
       // Delete the claim request
       await deleteDoc(doc(db, "businessClaimRequests", claim.id));
-      
+
       console.log("Admin - Deleted claim request");
 
       // Remove from local state
-      setClaimRequests(prev => prev.filter(c => c.id !== claim.id));
-      
+      setClaimRequests((prev) => prev.filter((c) => c.id !== claim.id));
+
       console.log("Admin - Claim approval complete");
       alert("Claim approved successfully!");
     } catch (error) {
@@ -341,21 +344,33 @@ const AdminDashboard: React.FC = () => {
 
   const filteredBusinesses = pendingBusinesses.filter(
     (business) =>
-      (business.businessName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (business.category || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (business.submitterName || "").toLowerCase().includes(searchTerm.toLowerCase())
+      (business.businessName || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (business.category || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (business.submitterName || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
   );
 
   const filteredProducts = pendingProducts.filter(
     (product) =>
       (product.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (product.businessName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (product.submitterName || "").toLowerCase().includes(searchTerm.toLowerCase())
+      (product.businessName || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
+      (product.submitterName || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase())
   );
 
   const filteredClaims = claimRequests.filter(
     (claim) =>
-      (claim.businessName || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (claim.businessName || "")
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase()) ||
       (claim.claimerName || "").toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -374,9 +389,7 @@ const AdminDashboard: React.FC = () => {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">
           Admin Dashboard
         </h1>
-        <p className="text-gray-600">
-          Approve community contributions
-        </p>
+        <p className="text-gray-600">Approve community contributions</p>
       </div>
 
       {/* Stats Overview */}
@@ -442,7 +455,9 @@ const AdminDashboard: React.FC = () => {
           ].map((tab) => (
             <button
               key={tab.id}
-              onClick={() => setActiveTab(tab.id as "businesses" | "products" | "claims")}
+              onClick={() =>
+                setActiveTab(tab.id as "businesses" | "products" | "claims")
+              }
               className={`py-2 px-1 border-b-2 font-medium text-sm ${
                 activeTab === tab.id
                   ? "border-rose-500 text-rose-600"
@@ -593,7 +608,10 @@ const AdminDashboard: React.FC = () => {
                           {product.name}
                         </h3>
                         <span className="text-2xl font-bold text-green-600">
-                          ${typeof product.productPrice === "number" ? product.productPrice.toFixed(2) : "N/A"}
+                          $
+                          {typeof product.price === "number"
+                            ? product.price.toFixed(2)
+                            : "N/A"}
                         </span>
                         {product.submittedByOwner && (
                           <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">

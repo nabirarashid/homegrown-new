@@ -172,15 +172,15 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
 
       // Reset business form
       setBusinessData({
-      businessName: "",
-      description: "",
-      category: "",
-      address: "",
-      phone: "",
-      website: "",
-      hours: "",
-      tags: [],
-    });
+        businessName: "",
+        description: "",
+        category: "",
+        address: "",
+        phone: "",
+        website: "",
+        hours: "",
+        tags: [],
+      });
       setBusinessImageFile(null);
       setBusinessImageUrl("");
     } catch (error) {
@@ -382,26 +382,36 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                 Sustainability Tags
               </label>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {["Green Certified", "Locally Sourced", "Zero-Waste"].map((tag) => (
-                  <label key={tag} className="flex items-center gap-3 bg-green-50 rounded-lg px-4 py-3 shadow-sm border border-green-200">
-                    <input
-                      type="checkbox"
-                      className="form-checkbox h-5 w-5 text-green-600 focus:ring-green-500"
-                      checked={businessData.tags.includes(tag)}
-                      onChange={() => {
-                        setBusinessData((prev) => {
-                          const tags = prev.tags.includes(tag)
-                            ? prev.tags.filter((t) => t !== tag)
-                            : [...prev.tags, tag];
-                          return { ...prev, tags };
-                        });
-                      }}
-                    />
-                    <span className="text-base font-medium text-green-800">{tag}</span>
-                  </label>
-                ))}
+                {["Green Certified", "Locally Sourced", "Zero-Waste"].map(
+                  (tag) => (
+                    <label
+                      key={tag}
+                      className="flex items-center gap-3 bg-green-50 rounded-lg px-4 py-3 shadow-sm border border-green-200"
+                    >
+                      <input
+                        type="checkbox"
+                        className="form-checkbox h-5 w-5 text-green-600 focus:ring-green-500"
+                        checked={businessData.tags.includes(tag)}
+                        onChange={() => {
+                          setBusinessData((prev) => {
+                            const tags = prev.tags.includes(tag)
+                              ? prev.tags.filter((t) => t !== tag)
+                              : [...prev.tags, tag];
+                            return { ...prev, tags };
+                          });
+                        }}
+                      />
+                      <span className="text-base font-medium text-green-800">
+                        {tag}
+                      </span>
+                    </label>
+                  )
+                )}
               </div>
-              <p className="text-xs text-green-700 mt-3">Select all that apply. These tags help users find sustainable businesses.</p>
+              <p className="text-xs text-green-700 mt-3">
+                Select all that apply. These tags help users find sustainable
+                businesses.
+              </p>
             </div>
 
             <div>

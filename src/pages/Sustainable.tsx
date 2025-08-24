@@ -88,9 +88,6 @@ const SustainableShoppingPage = () => {
   const [zeroWasteBusinesses, setZeroWasteBusinesses] = useState<Business[]>(
     []
   );
-  const [otherSustainableBusinesses, setOtherSustainableBusinesses] = useState<
-    Business[]
-  >([]);
   const [loading, setLoading] = useState(true);
 
   // Filter function for search
@@ -165,44 +162,9 @@ const SustainableShoppingPage = () => {
           )
         );
 
-        // Get other sustainable businesses (not in the main three categories)
-        const otherSustainable = allBusinesses.filter((business: Business) => {
-          const businessTags =
-            business.tags?.map((tag: string) => tag.toLowerCase()) || [];
-          const isInMainCategories = businessTags.some(
-            (tag: string) =>
-              tag === "green certified" ||
-              tag === "green-certified" ||
-              tag === "certified green" ||
-              tag === "locally sourced" ||
-              tag === "locally-sourced" ||
-              tag === "local sourced" ||
-              tag === "zero waste" ||
-              tag === "zero-waste" ||
-              tag === "zero waste certified"
-          );
-
-          // Include if it has other sustainability tags but isn't in main categories
-          const hasOtherSustainableTags = businessTags.some(
-            (tag: string) =>
-              tag.includes("organic") ||
-              tag.includes("eco") ||
-              tag.includes("sustainable") ||
-              tag.includes("green") ||
-              tag.includes("local") ||
-              tag.includes("farm") ||
-              tag.includes("artisan") ||
-              tag.includes("eco-friendly") ||
-              tag.includes("natural")
-          );
-
-          return !isInMainCategories && hasOtherSustainableTags;
-        });
-
         setGreenCertifiedBusinesses(greenCertified);
         setLocallySourcedBusinesses(locallySourced);
         setZeroWasteBusinesses(zeroWaste);
-        setOtherSustainableBusinesses(otherSustainable);
         setLoading(false);
       } catch {
         console.error("Error fetching sustainable businesses");
@@ -225,7 +187,8 @@ const SustainableShoppingPage = () => {
   }
 
   const BusinessCard = ({ business }: { business: Business }) => (
-    <div className="group cursor-pointer relative"
+    <div
+      className="group cursor-pointer relative"
       onClick={() => {
         if (business.website) {
           window.open(business.website, "_blank");
@@ -270,8 +233,12 @@ const SustainableShoppingPage = () => {
         </div>
         {/* Distance display */}
         <div className="mt-2 text-xs text-stone-500">
-          Distance: {business.location && userLocation ? (
-            <DistanceDisplay location={business.location} userLocation={userLocation} />
+          Distance:{" "}
+          {business.location && userLocation ? (
+            <DistanceDisplay
+              location={business.location}
+              userLocation={userLocation}
+            />
           ) : (
             "N/A"
           )}
