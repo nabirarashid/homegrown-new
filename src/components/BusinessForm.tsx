@@ -23,7 +23,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
   const [businessImageFile, setBusinessImageFile] = useState<File | null>(null);
   const [businessImageUrl, setBusinessImageUrl] = useState("");
   const [showProductForm, setShowProductForm] = useState(false);
-  const [selectedBusinessId, setSelectedBusinessId] = useState<string>("");
+  // Removed unused selectedBusinessId state
   interface Business {
     id: string;
     businessName: string;
@@ -149,7 +149,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
       }
 
       // Add business to "pendingBusinesses" collection for admin approval
-      const docRef = await addDoc(collection(db, "pendingBusinesses"), {
+      await addDoc(collection(db, "pendingBusinesses"), {
         ...businessData,
         image: finalBusinessImageUrl,
         tags: businessData.tags,
@@ -166,7 +166,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         createdAt: new Date(),
       });
 
-      setSelectedBusinessId(docRef.id);
+  // Removed setSelectedBusinessId, not used
       alert("Business submitted for approval! Now you can add products to it.");
       setShowProductForm(true);
 
@@ -719,7 +719,6 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
               onClick={() => {
                 setActiveTab("product");
                 setShowProductForm(false);
-                setSelectedBusinessId("");
               }}
               className="px-4 py-2 bg-rose-600 text-white rounded-lg hover:bg-rose-700"
             >
