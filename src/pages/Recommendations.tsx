@@ -325,11 +325,12 @@ const Recommendations = () => {
           <p className="text-gray-500 text-xs mb-3">{business.address}</p>
         )}
 
-        <div className="flex flex-wrap gap-2">
-          {business.tags?.slice(0, 3).map((tag: string, index: number) => (
+        <div className="flex flex-wrap gap-2 mt-2">
+          {business.tags?.map((tag: string, index: number) => (
             <span
               key={index}
-              className="px-2 py-1 bg-rose-100 text-rose-700 rounded-full text-xs"
+              className="inline-block px-2 py-0.5 bg-rose-100 text-rose-700 rounded-full text-xs font-medium border border-rose-200 shadow-sm"
+              style={{ letterSpacing: "0.02em", minWidth: "2.5rem", textAlign: "center" }}
             >
               {tag}
             </span>
@@ -341,7 +342,7 @@ const Recommendations = () => {
 
   const SmallBusinessCard = ({ business }: { business: Business }) => (
     <div
-      className="flex-shrink-0 w-60 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer relative"
+      className="flex-shrink-0 w-64 bg-white rounded-lg shadow-sm border border-gray-100 hover:shadow-md transition-shadow cursor-pointer relative"
       onClick={() => {
         if (business.website) {
           window.open(business.website, "_blank");
@@ -366,7 +367,8 @@ const Recommendations = () => {
         <h3 className="font-semibold text-gray-900 mb-2">
           {business.businessName}
         </h3>
-        <div className="flex items-center gap-2 text-sm text-gray-500 flex-wrap">
+        <p className="text-sm text-gray-600 mb-2">{business.description}</p>
+        <div className="flex items-center gap-2 text-sm text-gray-500 flex-wrap mb-2">
           {business.location ? (
             <DistanceDisplay
               location={business.location}
@@ -375,6 +377,17 @@ const Recommendations = () => {
           ) : (
             <span>Location N/A</span>
           )}
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {business.tags?.map((tag: string, index: number) => (
+            <span
+              key={index}
+              className="inline-block px-2 py-0.5 bg-rose-100 text-rose-700 rounded-full text-xs font-medium border border-rose-200 shadow-sm"
+              style={{ letterSpacing: "0.02em", minWidth: "2.5rem", textAlign: "center" }}
+            >
+              {tag}
+            </span>
+          ))}
         </div>
       </div>
     </div>

@@ -280,19 +280,68 @@ const Scroll = () => {
     const fetchBusinesses = async () => {
       try {
         const snapshot = await getDocs(collection(db, "products"));
-        let fetched = snapshot.docs.map((doc) => ({
+        let fetched: Array<Record<string, unknown>> = snapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
-        })) as Business[];
-        
+        }));
+
+        // For each product, fetch its business info and merge, ensuring all required fields exist
+        const mergedBusinesses: Business[] = await Promise.all(
+          fetched.map(async (product) => {
+            let businessInfo: Partial<Business> = {};
+            if (typeof product.businessId === "string") {
+              try {
+                const businessDoc = await getDoc(doc(db, "businesses", product.businessId));
+                if (businessDoc.exists()) {
+                  businessInfo = businessDoc.data();
+                }
+              } catch {
+                // ignore
+              }
+            }
+            // Defensive helpers
+            const safeString = (val: unknown, fallback = "") => typeof val === "string" ? val : fallback;
+            const safeNumber = (val: unknown, fallback = 0) => typeof val === "number" ? val : fallback;
+            const safeArray = (val: unknown, fallback: string[] = []) => Array.isArray(val) ? (val as string[]) : fallback;
+            const safeLocation = (loc: unknown) => {
+              if (
+                loc && typeof loc === "object" &&
+                "lat" in loc && typeof (loc as { lat: unknown }).lat === "number" &&
+                "lng" in loc && typeof (loc as { lng: unknown }).lng === "number"
+              ) {
+                return {
+                  lat: (loc as { lat: number }).lat,
+                  lng: (loc as { lng: number }).lng,
+                  address: safeString((loc as { address?: string }).address)
+                };
+              }
+              return undefined;
+            };
+            const merged: Business = {
+              id: safeString(product.id, ""),
+              productName: safeString(product.productName, safeString(businessInfo.productName, "Unnamed Product")),
+              businessName: safeString(product.businessName, safeString(businessInfo.businessName, "Unknown Business")),
+              productImage: safeString(product.productImage, safeString(businessInfo.productImage)),
+              description: safeString(product.description, safeString(businessInfo.description)),
+              category: safeString(product.category, safeString(businessInfo.category)),
+              productPrice: safeNumber(product.productPrice, safeNumber(businessInfo.productPrice)),
+              tags: safeArray(product.tags, safeArray(businessInfo.tags)),
+              location: safeLocation(product.location) || safeLocation(businessInfo.location),
+              hours: safeString(product.hours, safeString(businessInfo.hours)),
+              phone: safeString(product.phone, safeString(businessInfo.phone)),
+              website: safeString(product.website, safeString(businessInfo.website)),
+            };
+            return merged;
+          })
+        );
+
         // Validate and clean image URLs
-        const validatedBusinesses = fetched.map(business => {
+        const validatedBusinesses = mergedBusinesses.map(business => {
           if (business.productImage && business.productImage !== PLACEHOLDER_IMAGES.noImage) {
-            // Basic URL validation
             try {
               new URL(business.productImage);
               return business;
-            } catch (error) {
+            } catch {
               console.warn(`Invalid image URL for ${business.productName}: ${business.productImage}`);
               return {
                 ...business,
@@ -302,13 +351,13 @@ const Scroll = () => {
           }
           return business;
         });
-        
+
         // Shuffle array
         for (let i = validatedBusinesses.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
           [validatedBusinesses[i], validatedBusinesses[j]] = [validatedBusinesses[j], validatedBusinesses[i]];
         }
-        
+
         console.log(`Loaded ${validatedBusinesses.length} businesses`);
         setAllBusinesses(validatedBusinesses);
       } catch (error) {
@@ -616,21 +665,19 @@ const Scroll = () => {
                   {currentBusiness?.description || "No description available"}
                 </p>
 
-                {currentBusiness?.tags &&
-                  Array.isArray(currentBusiness.tags) && (
-                    <div className="flex flex-wrap gap-2 mb-4">
-                      {currentBusiness.tags.map(
-                        (tag: string, index: number) => (
-                          <span
-                            key={index}
-                            className="px-2 py-1 bg-stone-100 text-stone-700 rounded-full text-xs"
-                          >
-                            {tag}
-                          </span>
-                        )
-                      )}
-                    </div>
-                  )}
+                {currentBusiness?.tags && Array.isArray(currentBusiness.tags) && (
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    {currentBusiness.tags.map((tag: string, index: number) => (
+                      <span
+                        key={index}
+                        className="inline-block px-2 py-0.5 bg-rose-100 text-rose-700 rounded-full text-xs font-medium border border-rose-200 shadow-sm"
+                        style={{ letterSpacing: "0.02em", minWidth: "2.5rem", textAlign: "center" }}
+                      >
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                )}
 
                 <div className="flex items-center gap-4 text-sm text-stone-600">
                   {currentBusiness?.phone && (

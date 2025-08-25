@@ -104,12 +104,11 @@ const Home = () => {
               </h3>
               <p className="text-sm text-gray-600">{business.description}</p>
               <div className="mt-2 flex flex-wrap gap-1">
-                {business.tags
-                  ?.slice(0, 3)
-                  .map((tag: string, index: number) => (
+                  {business.tags?.map((tag: string, index: number) => (
                     <span
                       key={index}
-                      className="px-2 py-1 bg-rose-100 text-rose-700 rounded-full text-xs"
+                      className="inline-block px-2 py-0.5 bg-rose-100 text-rose-700 rounded-full text-xs font-medium border border-rose-200 shadow-sm"
+                      style={{ letterSpacing: "0.02em", minWidth: "2.5rem", textAlign: "center" }}
                     >
                       {tag}
                     </span>
