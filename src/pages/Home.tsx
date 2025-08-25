@@ -12,23 +12,21 @@ const Home = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch featured businesses
-        const businessesSnapshot = await getDocs(
-          query(collection(db, "businesses"), limit(6))
-        );
-        const businessesData = businessesSnapshot.docs.map((doc) => ({
+        // Fetch all businesses
+        const businessesSnapshot = await getDocs(collection(db, "businesses"));
+        let businessesData = businessesSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         }));
+        // Shuffle and pick 6 random businesses
+        businessesData = businessesData.sort(() => Math.random() - 0.5).slice(0, 6);
         setFeaturedBusinesses(businessesData);
-
         setLoading(false);
       } catch (error) {
         console.error("Error fetching data:", error);
         setLoading(false);
       }
     };
-
     fetchData();
   }, []);
 

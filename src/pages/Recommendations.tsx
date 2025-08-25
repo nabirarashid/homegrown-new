@@ -235,12 +235,13 @@ const Recommendations = () => {
         }
 
         // Set up regular suggestions
-        const suggestionData = processedBusinesses.map((business) => ({
+        // Shuffle and pick 20 random businesses for suggestions
+        const shuffled = processedBusinesses.sort(() => Math.random() - 0.5);
+        const suggestionData = shuffled.slice(0, 20).map((business) => ({
           ...business,
           category: business.category || "General",
           isLiked: preferences?.likedBusinesses?.includes(business.businessName) || false,
         }));
-
         setSuggestions(suggestionData);
         
   // Removed featured business selection logic
