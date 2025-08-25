@@ -16,6 +16,19 @@ interface BusinessFormProps {
 }
 
 const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
+  // Improved price processing function
+  const processPrice = (priceInput: string) => {
+    if (!priceInput || priceInput.trim() === "") {
+      return "Check Store";
+    }
+    const raw = priceInput.trim();
+    const cleaned = raw.replace(/[$,£€¥]/g, "");
+    const numValue = parseFloat(cleaned);
+    if (!isNaN(numValue) && cleaned !== "" && isFinite(numValue)) {
+      return numValue;
+    }
+    return "Check Store";
+  };
   const [user] = useAuthState(auth);
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -236,7 +249,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         ...productData,
         businessId: targetBusinessId,
         businessName: targetBusinessName,
-        productPrice: parseFloat(productData.productPrice) || 0,
+        productPrice: processPrice(productData.productPrice),
         productImage: finalImageUrl,
         submittedBy: user?.uid || "anonymous",
         submitterEmail: user?.email || "anonymous",

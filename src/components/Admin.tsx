@@ -43,7 +43,7 @@ interface PendingProduct {
   id: string;
   name: string;
   description: string;
-  price: number;
+  price: number | string;
   category: string;
   sustainabilityTags: string[];
   inStock: boolean;
@@ -143,15 +143,19 @@ const AdminDashboard: React.FC = () => {
       const productsSnapshot = await getDocs(productsQuery);
       const productsData = productsSnapshot.docs.map((doc) => {
         const data = doc.data();
-        // Map productName to name for compatibility
+        // Debug: Log what we're getting from the database
+        console.log("Raw product data:", {
+          id: doc.id,
+          productPrice: data.productPrice,
+          price: data.price,
+          productName: data.productName
+        });
+        // Use productPrice directly since it's already processed by processPrice function
         return {
           id: doc.id,
           ...data,
           name: data.productName || data.name || "Unnamed Product",
-          price:
-            typeof data.productPrice === "number"
-              ? data.productPrice
-              : data.price,
+          price: data.productPrice,
         };
       }) as PendingProduct[];
       setPendingProducts(productsData);
@@ -608,10 +612,11 @@ const AdminDashboard: React.FC = () => {
                           {product.name}
                         </h3>
                         <span className="text-2xl font-bold text-green-600">
-                          $
                           {typeof product.price === "number"
-                            ? product.price.toFixed(2)
-                            : "N/A"}
+                            ? `$${product.price.toFixed(2)}`
+                            : typeof product.price === "string" && product.price.trim() !== ""
+                              ? product.price
+                              : "N/A"}
                         </span>
                         {product.submittedByOwner && (
                           <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">

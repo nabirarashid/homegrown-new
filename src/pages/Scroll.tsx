@@ -52,7 +52,7 @@ interface Business {
   productImage?: string;
   description?: string;
   category?: string;
-  productPrice?: number;
+  productPrice?: number | string;
   tags?: string[];
   location?: {
     lat: number;
@@ -301,7 +301,6 @@ const Scroll = () => {
             }
             // Defensive helpers
             const safeString = (val: unknown, fallback = "") => typeof val === "string" ? val : fallback;
-            const safeNumber = (val: unknown, fallback = 0) => typeof val === "number" ? val : fallback;
             const safeArray = (val: unknown, fallback: string[] = []) => Array.isArray(val) ? (val as string[]) : fallback;
             const safeLocation = (loc: unknown) => {
               if (
@@ -324,7 +323,26 @@ const Scroll = () => {
               productImage: safeString(product.productImage, safeString(businessInfo.productImage)),
               description: safeString(product.description, safeString(businessInfo.description)),
               category: safeString(product.category, safeString(businessInfo.category)),
-              productPrice: safeNumber(product.productPrice, safeNumber(businessInfo.productPrice)),
+              productPrice:
+                typeof product.productPrice === "number"
+                  ? product.productPrice
+                  : typeof product.productPrice === "string" && product.productPrice.trim() !== ""
+                    ? (() => {
+                        const cleaned = product.productPrice.replace(/[$,]/g, "");
+                        return !isNaN(parseFloat(cleaned))
+                          ? parseFloat(cleaned)
+                          : product.productPrice;
+                      })()
+                    : typeof businessInfo.productPrice === "number"
+                      ? businessInfo.productPrice
+                      : typeof businessInfo.productPrice === "string" && businessInfo.productPrice.trim() !== ""
+                        ? (() => {
+                            const cleaned = businessInfo.productPrice.replace(/[$,]/g, "");
+                            return !isNaN(parseFloat(cleaned))
+                              ? parseFloat(cleaned)
+                              : businessInfo.productPrice;
+                          })()
+                        : undefined,
               tags: safeArray(product.tags, safeArray(businessInfo.tags)),
               location: safeLocation(product.location) || safeLocation(businessInfo.location),
               hours: safeString(product.hours, safeString(businessInfo.hours)),
@@ -623,13 +641,15 @@ const Scroll = () => {
               )}
 
               {/* Price */}
-              {currentBusiness?.productPrice && (
-                <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full flex items-center gap-1">
-                  <span className="text-white text-xs font-semibold">
-                    ${currentBusiness.productPrice}
-                  </span>
-                </div>
-              )}
+              <div className="absolute top-4 right-4 bg-black/50 backdrop-blur-sm px-2 py-1 rounded-full flex items-center gap-1">
+                <span className="text-white text-xs font-semibold">
+                  {typeof currentBusiness?.productPrice === "number"
+                    ? `$${currentBusiness.productPrice.toFixed(2)}`
+                    : typeof currentBusiness?.productPrice === "string" && currentBusiness.productPrice.trim() !== ""
+                      ? currentBusiness.productPrice
+                      : "Check Store"}
+                </span>
+              </div>
             </div>
 
             {/* Business Info */}
