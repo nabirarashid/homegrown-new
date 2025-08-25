@@ -82,8 +82,6 @@ const BusinessDashboard: React.FC = () => {
       if (!user) return;
       setLoading(true);
       try {
-        console.log("BusinessDashboard - Fetching data for user:", user.uid);
-
         // Check for claimed business
         const claimedQuery = query(
           collection(db, "businesses"),
@@ -91,10 +89,6 @@ const BusinessDashboard: React.FC = () => {
           where("status", "==", "claimed")
         );
         const claimedSnapshot = await getDocs(claimedQuery);
-        console.log(
-          "BusinessDashboard - Found claimed businesses:",
-          claimedSnapshot.docs.length
-        );
 
         // Check for user's pending claims
         const userClaimsQuery = query(
@@ -102,165 +96,53 @@ const BusinessDashboard: React.FC = () => {
           where("claimedBy", "==", user.uid)
         );
         const userClaimsSnapshot = await getDocs(userClaimsQuery);
-        const pendingClaimIds = userClaimsSnapshot.docs.map(
-          (doc) => doc.data().businessId
-        );
+        // Only block businesses with a pending claim
+        const pendingClaimIds = userClaimsSnapshot.docs
+          .filter(doc => doc.data().status === "pending")
+          .map(doc => doc.data().businessId);
         setUserPendingClaims(pendingClaimIds);
-        console.log(
-          "BusinessDashboard - User pending claims:",
-          pendingClaimIds
-        );
 
         if (!claimedSnapshot.empty) {
           const businessData = claimedSnapshot.docs[0].data() as Business;
           businessData.id = claimedSnapshot.docs[0].id;
-          console.log(
-            "BusinessDashboard - Claimed business data:",
-            businessData
-          );
-
           setClaimedBusiness(businessData);
-          // Fetch products for this business
-          console.log(
-            "BusinessDashboard - Fetching products for business ID:",
-            businessData.id
-          );
 
-          // Try different query strategies to find products
-          console.log("BusinessDashboard - Trying businessId query...");
+          // Fetch products for this business
           const productsQuery = query(
             collection(db, "products"),
             where("businessId", "==", businessData.id)
           );
           const productsSnapshot = await getDocs(productsQuery);
-          console.log(
-            "BusinessDashboard - Found products with businessId:",
-            productsSnapshot.docs.length
-          );
 
-          // Also try businessName query
-          console.log("BusinessDashboard - Trying businessName query...");
-          const productsNameQuery = query(
-            collection(db, "products"),
-            where("businessName", "==", businessData.businessName)
-          );
-          const productsNameSnapshot = await getDocs(productsNameQuery);
-          console.log(
-            "BusinessDashboard - Found products with businessName:",
-            productsNameSnapshot.docs.length
-          );
-
-          // Also try ownerId query
-          console.log("BusinessDashboard - Trying ownerId query...");
-          const productsOwnerQuery = query(
-            collection(db, "products"),
-            where("ownerId", "==", user.uid)
-          );
-          const productsOwnerSnapshot = await getDocs(productsOwnerQuery);
-          console.log(
-            "BusinessDashboard - Found products with ownerId:",
-            productsOwnerSnapshot.docs.length
-          );
-
-          // Let's see all products and their structure
-          console.log("BusinessDashboard - Getting all products to debug...");
-          const allProductsSnapshot = await getDocs(collection(db, "products"));
-          console.log(
-            "BusinessDashboard - Total products in collection:",
-            allProductsSnapshot.docs.length
-          );
-          allProductsSnapshot.docs.forEach((doc) => {
-            const data = doc.data();
-            console.log(
-              `Product: ${data.productName || data.name}, BusinessId: ${
-                data.businessId
-              }, BusinessName: ${data.businessName}, OwnerId: ${
-                data.ownerId
-              }, Status: ${data.status}`
-            );
-          });
-
-          // Use the query that actually returns results
           let finalProductsData: Product[] = [];
           if (productsSnapshot.docs.length > 0) {
             finalProductsData = productsSnapshot.docs.map((doc) => ({
               id: doc.id,
               ...doc.data(),
             })) as Product[];
-          } else if (productsNameSnapshot.docs.length > 0) {
-            finalProductsData = productsNameSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            })) as Product[];
-          } else if (productsOwnerSnapshot.docs.length > 0) {
-            finalProductsData = productsOwnerSnapshot.docs.map((doc) => ({
-              id: doc.id,
-              ...doc.data(),
-            })) as Product[];
           }
-
-          console.log(
-            "BusinessDashboard - Final products data:",
-            finalProductsData.length
-          );
           setBusinessProducts(finalProductsData);
-
-          // Clear available businesses since user has claimed business
           setAvailableBusinesses([]);
         } else if (pendingClaimIds.length > 0) {
-          // User has pending claims, don't show available businesses
-          console.log(
-            "BusinessDashboard - User has pending claims, not showing available businesses"
-          );
           setClaimedBusiness(null);
           setAvailableBusinesses([]);
         } else {
-          console.log(
-            "BusinessDashboard - No claimed business found, fetching available businesses"
-          );
           setClaimedBusiness(null);
 
-          // Get all pending claim requests to filter out businesses with pending claims
-          const allPendingClaimsSnapshot = await getDocs(
-            collection(db, "businessClaimRequests")
-          );
-          const businessesWithPendingClaims = new Set(
-            allPendingClaimsSnapshot.docs.map((doc) => doc.data().businessId)
-          );
-          console.log(
-            "BusinessDashboard - Businesses with pending claims:",
-            businessesWithPendingClaims.size
-          );
-
-          // Show all businesses that are unclaimed or active but not claimed
-          const businessesSnapshot = await getDocs(
-            collection(db, "businesses")
-          );
-          console.log(
-            "BusinessDashboard - Total businesses found:",
-            businessesSnapshot.docs.length
-          );
-
+          // Show all businesses that are unclaimed or active but not claimed, and not already requested by this user
+          const businessesSnapshot = await getDocs(collection(db, "businesses"));
           const availableData = businessesSnapshot.docs
             .map((doc) => ({ id: doc.id, ...doc.data() } as Business))
             .filter((b) => {
-              // Show if status is 'active' and not claimed and doesn't have pending claims
               const status = b.status || "active";
-              const hasPendingClaim = businessesWithPendingClaims.has(b.id);
-              const isAvailable =
+              const isClaimed = Boolean(b.ownerId) || Boolean(b.claimedBy);
+              const isPendingClaim = pendingClaimIds.includes(b.id);
+              return (
                 status === "active" &&
-                !b.ownerId &&
-                !b.claimedBy &&
-                !hasPendingClaim;
-              console.log(
-                `Business ${b.businessName}: status=${status}, ownerId=${b.ownerId}, claimedBy=${b.claimedBy}, hasPendingClaim=${hasPendingClaim}, available=${isAvailable}`
+                !isClaimed &&
+                !isPendingClaim
               );
-              return isAvailable;
             });
-          console.log(
-            "BusinessDashboard - Available businesses after filtering:",
-            availableData.length
-          );
           setAvailableBusinesses(availableData);
         }
       } catch (error) {
@@ -273,7 +155,7 @@ const BusinessDashboard: React.FC = () => {
     if (user) {
       fetchBusinessData();
     }
-  }, [user]); // Only depend on user
+  }, [user]);
 
   // Product editing functions
   const startEditingProduct = (product: Product) => {

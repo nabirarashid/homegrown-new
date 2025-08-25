@@ -106,15 +106,40 @@ const Mapping: React.FC = () => {
     const fetchBusinesses = async () => {
       try {
         const businessesSnapshot = await getDocs(collection(db, "businesses"));
-        const businessesData = businessesSnapshot.docs.map((doc) => ({
+        let businessesData = businessesSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
         })) as Business[];
 
         // Only show approved/active businesses on the map
-        const activeBusinesses = businessesData.filter(
+        let activeBusinesses = businessesData.filter(
           (business: any) =>
             business.status === "active" || business.status === "claimed"
+        );
+
+        // Geocode businesses missing lat/lng but with address
+        activeBusinesses = await Promise.all(
+          activeBusinesses.map(async (business) => {
+            // Use address from location field if present
+            const address = business.location?.address;
+            if (
+              address &&
+              (!business.location || business.location.lat == null || business.location.lng == null)
+            ) {
+              try {
+                const geo = await import("../utils/geocodeAddress").then(m => m.geocodeAddress(address));
+                if (geo) {
+                  return {
+                    ...business,
+                    location: { ...geo, address },
+                  };
+                }
+              } catch (error) {
+                console.warn(`Failed to geocode address for business ${business.businessName}: ${address}`);
+              }
+            }
+            return business;
+          })
         );
 
         setBusinesses(activeBusinesses);

@@ -48,6 +48,16 @@ export const calculateDistance = (
   location1: Location,
   location2: Location
 ): number => {
+  if (
+    !location1 ||
+    !location2 ||
+    location1.lat == null ||
+    location1.lng == null ||
+    location2.lat == null ||
+    location2.lng == null
+  ) {
+    return 0;
+  }
   return getDistance(
     { latitude: location1.lat, longitude: location1.lng },
     { latitude: location2.lat, longitude: location2.lng }

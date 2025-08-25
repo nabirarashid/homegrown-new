@@ -1,39 +1,56 @@
 import { useState, useEffect } from "react";
-import { Star, TrendingUp, Sparkles } from "lucide-react";
+import { TrendingUp, Sparkles, MapPin } from "lucide-react";
 import { db, auth } from "../firebase";
 import { collection, getDocs, doc, getDoc } from "firebase/firestore";
 import { getDistanceString, getUserLocation } from "../utils/locationService";
 import LocationPermission from "../components/LocationPermission";
 import { PLACEHOLDER_IMAGES } from "../utils/placeholders";
+import { geocodeAddress } from "../utils/geocodeAddress";
 
-// Distance display component
+// Enhanced Distance display component with loading states
 const DistanceDisplay: React.FC<{
   location: { lat: number; lng: number };
   userLocation: { lat: number; lng: number } | null;
 }> = ({ location, userLocation }) => {
   const [distance, setDistance] = useState<string>("...");
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const calculateDistance = async () => {
+      setLoading(true);
       try {
-        if (userLocation) {
-          const distanceString = await getDistanceString(
-            location,
-            userLocation
-          );
+        if (userLocation && location) {
+          const distanceString = await getDistanceString(location, userLocation);
           setDistance(distanceString);
         } else {
           setDistance("Location needed");
         }
       } catch (error) {
+        console.error("Distance calculation error:", error);
         setDistance("N/A");
+      } finally {
+        setLoading(false);
       }
     };
 
     calculateDistance();
   }, [location, userLocation]);
 
-  return <span>{distance}</span>;
+  if (loading) {
+    return (
+      <div className="flex items-center gap-1">
+        <MapPin className="w-3 h-3 animate-pulse" />
+        <span className="animate-pulse">...</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex items-center gap-1">
+      <MapPin className="w-3 h-3" />
+      <span>{distance}</span>
+    </div>
+  );
 };
 
 interface Business {
@@ -57,6 +74,7 @@ interface Business {
   isLiked?: boolean;
   matchScore?: number;
   matchingTags?: string[];
+  geocodingStatus?: 'pending' | 'success' | 'failed' | 'cached';
 }
 
 interface UserPreferences {
@@ -75,15 +93,12 @@ const Recommendations = () => {
   const [locationPermission, setLocationPermission] = useState<
     "granted" | "denied" | "prompt"
   >("prompt");
-  const [featuredBusiness, setFeaturedBusiness] = useState<Business | null>(
-    null
-  );
+  // Removed featuredBusiness state
   const [suggestions, setSuggestions] = useState<Business[]>([]);
   const [loading, setLoading] = useState(true);
-  const [userPreferences, setUserPreferences] =
-    useState<UserPreferences | null>(null);
-  const [personalizedRecommendations, setPersonalizedRecommendations] =
-    useState<Business[]>([]);
+  const [geocodingProgress, setGeocodingProgress] = useState({ current: 0, total: 0 });
+  const [userPreferences, setUserPreferences] = useState<UserPreferences | null>(null);
+  const [personalizedRecommendations, setPersonalizedRecommendations] = useState<Business[]>([]);
 
   // Get user location on component mount
   useEffect(() => {
@@ -94,7 +109,7 @@ const Recommendations = () => {
         setLocationPermission("granted");
       } catch (error) {
         console.error("Error getting user location:", error);
-        setLocationPermission("prompt");
+        setLocationPermission("denied");
       }
     };
 
@@ -104,8 +119,7 @@ const Recommendations = () => {
   useEffect(() => {
     const fetchUserPreferences = async () => {
       const user = auth.currentUser;
-      if (!user) return;
-
+      if (!user) return null;
       try {
         const userDoc = await getDoc(doc(db, "users", user.uid));
         if (userDoc.exists()) {
@@ -121,99 +135,126 @@ const Recommendations = () => {
 
     const fetchRecommendations = async () => {
       try {
+        setLoading(true);
+        
         // Fetch user preferences first
         const preferences = await fetchUserPreferences();
 
         // Fetch businesses from database
         const businessesSnapshot = await getDocs(collection(db, "businesses"));
-        const allBusinesses = businessesSnapshot.docs.map((doc) => ({
+        let allBusinesses = businessesSnapshot.docs.map((doc) => ({
           id: doc.id,
           ...doc.data(),
+          geocodingStatus: 'pending' as const
         })) as Business[];
+
+        console.log(`📍 Starting geocoding for ${allBusinesses.length} businesses...`);
+        setGeocodingProgress({ current: 0, total: allBusinesses.length });
+
+        // Enhanced geocoding with progress tracking and error handling
+        const geocodedBusinesses = await Promise.allSettled(
+          allBusinesses.map(async (business, index) => {
+            try {
+              // Update progress
+              setGeocodingProgress(prev => ({ ...prev, current: index + 1 }));
+
+              if (business.address && (!business.location || !business.location.lat || !business.location.lng)) {
+                console.log(`📍 Geocoding ${business.businessName}: ${business.address}`);
+                
+                const geo = await geocodeAddress(business.address);
+                if (geo) {
+                  return {
+                    ...business,
+                    location: { ...geo, address: business.address },
+                    geocodingStatus: 'success' as const
+                  };
+                } else {
+                  console.warn(`❌ Failed to geocode ${business.businessName}: ${business.address}`);
+                  return {
+                    ...business,
+                    geocodingStatus: 'failed' as const
+                  };
+                }
+              } else if (business.location?.lat && business.location?.lng) {
+                return {
+                  ...business,
+                  geocodingStatus: 'cached' as const
+                };
+              }
+              
+              return business;
+            } catch (error) {
+              console.error(`❌ Geocoding error for ${business.businessName}:`, error);
+              return {
+                ...business,
+                geocodingStatus: 'failed' as const
+              };
+            }
+          })
+        );
+
+        // Process results and separate successful vs failed geocoding
+        const processedBusinesses = geocodedBusinesses.map((result, index) => {
+          if (result.status === 'fulfilled') {
+            return result.value;
+          } else {
+            console.error(`❌ Promise rejected for business ${index}:`, result.reason);
+            return allBusinesses[index]; // Return original business data
+          }
+        });
+
+        const successfulGeocode = processedBusinesses.filter(b => b.geocodingStatus === 'success').length;
+        const cachedGeocode = processedBusinesses.filter(b => b.geocodingStatus === 'cached').length;
+        const failedGeocode = processedBusinesses.filter(b => b.geocodingStatus === 'failed').length;
+        
+        console.log(`📊 Geocoding complete: ${successfulGeocode} new, ${cachedGeocode} cached, ${failedGeocode} failed`);
 
         // If user has preferences, create personalized recommendations
         if (preferences && preferences.preferences?.tags?.length > 0) {
           const userTags = preferences.preferences.tags;
-
-          // Score businesses based on tag matches
-          const scoredBusinesses = allBusinesses.map((business) => {
+          const scoredBusinesses = processedBusinesses.map((business) => {
             const businessTags = business.tags || [];
             const matchingTags = businessTags.filter((tag) =>
               userTags.includes(tag)
             );
             const score = matchingTags.length;
-
             return {
               ...business,
               matchScore: score,
               matchingTags,
             };
           });
-
-          // Sort by match score and take top recommendations
+          
           const topRecommendations = scoredBusinesses
             .filter((business) => business.matchScore > 0)
             .sort((a, b) => b.matchScore - a.matchScore)
             .slice(0, 6);
-
+          
           setPersonalizedRecommendations(topRecommendations);
-
-          // Set featured business from personalized recommendations
-          if (topRecommendations.length > 0) {
-            setFeaturedBusiness({
-              ...topRecommendations[0],
-              isSponsored: true,
-            });
-          }
-
-          // Set trending business from personalized recommendations
-          if (topRecommendations.length > 1) {
-            // Could set additional featured content here if needed
-          }
-        } else {
-          // Fallback to regular recommendations if no preferences
-          if (allBusinesses.length > 0) {
-            setFeaturedBusiness({
-              ...allBusinesses[0],
-              isSponsored: true,
-            });
-          }
-
-          if (allBusinesses.length > 1) {
-            // Could set additional featured content here if needed
-          }
+          console.log(`✨ Generated ${topRecommendations.length} personalized recommendations`);
         }
 
-        // Set general suggestions
-        const suggestionData = allBusinesses.map((business) => ({
+        // Set up regular suggestions
+        const suggestionData = processedBusinesses.map((business) => ({
           ...business,
           category: business.category || "General",
-          isLiked:
-            preferences?.likedBusinesses?.includes(business.businessName) ||
-            false,
+          isLiked: preferences?.likedBusinesses?.includes(business.businessName) || false,
         }));
 
         setSuggestions(suggestionData);
-        setLoading(false);
+        
+  // Removed featured business selection logic
+
       } catch (error) {
-        console.error("Error fetching recommendations:", error);
+        console.error("❌ Error fetching recommendations:", error);
+      } finally {
         setLoading(false);
+        setGeocodingProgress({ current: 0, total: 0 });
       }
     };
 
     fetchRecommendations();
   }, []);
-
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-rose-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading recommendations...</p>
-        </div>
-      </div>
-    );
-  }
 
   const BusinessCard = ({
     business,
@@ -237,10 +278,11 @@ const Recommendations = () => {
           Visit
         </div>
       )}
+      
+  {/* Geocoding status indicator removed */}
+
       <img
-        src={
-          business.productImage || business.image || PLACEHOLDER_IMAGES.business
-        }
+        src={business.productImage || business.image || PLACEHOLDER_IMAGES.business}
         alt={business.businessName}
         className={`object-cover ${
           layout === "horizontal"
@@ -266,33 +308,24 @@ const Recommendations = () => {
           {business.businessName}
         </h3>
 
-        <div className="flex items-center gap-2 mb-3">
-          <div className="flex items-center gap-1">
-            <Star className="w-4 h-4 text-yellow-400 fill-current" />
-            <span className="text-sm font-medium text-gray-700">
-              {business.rating || "N/A"}
-            </span>
-          </div>
-          <span className="text-sm text-gray-500">·</span>
-          <span className="text-sm text-gray-500">
-            {business.reviews || 0} reviews
-          </span>
-          <span className="text-sm text-gray-500">·</span>
-          <span className="text-sm text-gray-500">
-            {business.location ? (
-              <DistanceDisplay
-                location={business.location}
-                userLocation={userLocation}
-              />
-            ) : (
-              "N/A"
-            )}
-          </span>
+        <div className="flex items-center gap-2 mb-3 flex-wrap text-sm">
+          {business.location ? (
+            <DistanceDisplay
+              location={business.location}
+              userLocation={userLocation}
+            />
+          ) : (
+            <span className="text-gray-500">Location N/A</span>
+          )}
         </div>
 
-        <p className="text-gray-600 text-sm">{business.description}</p>
+        <p className="text-gray-600 text-sm mb-3">{business.description}</p>
 
-        <div className="mt-3 flex flex-wrap gap-2">
+        {business.address && (
+          <p className="text-gray-500 text-xs mb-3">{business.address}</p>
+        )}
+
+        <div className="flex flex-wrap gap-2">
           {business.tags?.slice(0, 3).map((tag: string, index: number) => (
             <span
               key={index}
@@ -321,36 +354,55 @@ const Recommendations = () => {
         </div>
       )}
       <img
-        src={business.productImage || PLACEHOLDER_IMAGES.business}
+        src={business.productImage || business.image || PLACEHOLDER_IMAGES.business}
         alt={business.businessName}
         className="w-full h-48 object-cover rounded-t-lg"
+        onError={(e) => {
+          const target = e.target as HTMLImageElement;
+          target.src = PLACEHOLDER_IMAGES.business;
+        }}
       />
       <div className="p-4">
         <h3 className="font-semibold text-gray-900 mb-2">
           {business.businessName}
         </h3>
-        <div className="flex items-center gap-2 text-sm text-gray-500">
-          <div className="flex items-center gap-1">
-            <Star className="w-3 h-3 text-yellow-400 fill-current" />
-            <span>{business.rating || "N/A"}</span>
-          </div>
-          <span>·</span>
-          <span>{business.reviews || 0} reviews</span>
-          <span>·</span>
-          <span>
-            {business.location ? (
-              <DistanceDisplay
-                location={business.location}
-                userLocation={userLocation}
-              />
-            ) : (
-              "N/A"
-            )}
-          </span>
+        <div className="flex items-center gap-2 text-sm text-gray-500 flex-wrap">
+          {business.location ? (
+            <DistanceDisplay
+              location={business.location}
+              userLocation={userLocation}
+            />
+          ) : (
+            <span>Location N/A</span>
+          )}
         </div>
       </div>
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-rose-50 via-stone-50 to-rose-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-rose-500 mx-auto mb-4"></div>
+          <p className="text-stone-600 mb-2">Loading recommendations...</p>
+          {geocodingProgress.total > 0 && (
+            <div className="max-w-xs mx-auto">
+              <div className="bg-gray-200 rounded-full h-2 mb-2">
+                <div 
+                  className="bg-rose-500 h-2 rounded-full transition-all duration-300"
+                  style={{ width: `${(geocodingProgress.current / geocodingProgress.total) * 100}%` }}
+                ></div>
+              </div>
+              <p className="text-xs text-gray-500">
+                Processing locations: {geocodingProgress.current} / {geocodingProgress.total}
+              </p>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 via-stone-50 to-rose-100 font-sans">
@@ -384,13 +436,11 @@ const Recommendations = () => {
               {personalizedRecommendations.slice(0, 4).map((business) => (
                 <div key={business.id} className="relative">
                   <BusinessCard business={business} layout="vertical" />
-                  {business.matchingTags &&
-                    business.matchingTags.length > 0 && (
-                      <div className="absolute bottom-2 right-2 inline-block px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded mb-2">
-                        {business.matchingTags.length} match
-                        {business.matchingTags.length > 1 ? "es" : ""}
-                      </div>
-                    )}
+                  {business.matchingTags && business.matchingTags.length > 0 && (
+                    <div className="absolute bottom-4 right-4 inline-block px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-medium rounded">
+                      {business.matchingTags.length} match{business.matchingTags.length > 1 ? "es" : ""}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -421,25 +471,20 @@ const Recommendations = () => {
           </section>
         )}
 
-        <section className="mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-4">
-            Featured Business
-          </h2>
-          {featuredBusiness && (
-            <BusinessCard business={featuredBusiness} layout="horizontal" />
-          )}
-        </section>
+  {/* Featured Business Section removed */}
 
+        {/* All Suggestions Section */}
         <section className="mb-8">
           <h2 className="text-2xl font-bold text-gray-900 mb-4">
             You might also like
           </h2>
           <div className="flex gap-4 overflow-x-auto pb-4">
-            {suggestions.map((business) => (
-              <SmallBusinessCard key={business.id} business={business} />
-            ))}
+      {suggestions.map((business) => (
+        <SmallBusinessCard key={business.id} business={business} />
+      ))}
           </div>
         </section>
+
       </main>
     </div>
   );

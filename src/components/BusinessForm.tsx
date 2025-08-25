@@ -51,6 +51,7 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
     website: "",
     hours: "",
     tags: [] as string[],
+    customTags: "",
   });
 
   const [productData, setProductData] = useState({
@@ -132,20 +133,28 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
   const handleBusinessSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+
     try {
       let finalBusinessImageUrl = "";
       if (businessImageFile) {
         const storage = getStorage();
         const storageRef = ref(
           storage,
-          `businessImages/${user?.uid || "anonymous"}_${Date.now()}_${
-            businessImageFile.name
-          }`
+          `businessImages/${user?.uid || "anonymous"}_${Date.now()}_${businessImageFile.name}`
         );
         await uploadBytes(storageRef, businessImageFile);
         finalBusinessImageUrl = await getDownloadURL(storageRef);
       } else if (businessImageUrl.trim()) {
         finalBusinessImageUrl = businessImageUrl.trim();
+      }
+
+      // Geocode address before submitting
+      let geocodedLocation = null;
+      try {
+        const { geocodeAddress } = await import("../utils/geocodeAddress");
+        geocodedLocation = await geocodeAddress(businessData.address);
+      } catch (geoError) {
+        console.warn("Geocoding failed, submitting without lat/lng:", geoError);
       }
 
       // Add business to "pendingBusinesses" collection for admin approval
@@ -155,7 +164,8 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         tags: businessData.tags,
         location: {
           address: businessData.address,
-          // Coordinates will be geocoded by the mapping service when needed
+          lat: geocodedLocation?.lat || null,
+          lng: geocodedLocation?.lng || null,
         },
         submittedBy: user?.uid || "anonymous",
         submitterEmail: user?.email || "anonymous",
@@ -172,14 +182,15 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
 
       // Reset business form
       setBusinessData({
-        businessName: "",
-        description: "",
-        category: "",
-        address: "",
-        phone: "",
-        website: "",
-        hours: "",
-        tags: [],
+  businessName: "",
+  description: "",
+  category: "",
+  address: "",
+  phone: "",
+  website: "",
+  hours: "",
+  tags: [],
+  customTags: "",
       });
       setBusinessImageFile(null);
       setBusinessImageUrl("");
@@ -412,6 +423,46 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                 Select all that apply. These tags help users find sustainable
                 businesses.
               </p>
+              {/* Additional Custom Tags Section */}
+              <div className="mt-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Add More Tags (comma separated)
+                </label>
+                <input
+                  type="text"
+                  value={businessData.customTags || ""}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    setBusinessData((prev) => ({
+                      ...prev,
+                      customTags: value,
+                      tags: [
+                        ...prev.tags.filter(
+                          (tag) =>
+                            tag !== "Green Certified" &&
+                            tag !== "Locally Sourced" &&
+                            tag !== "Zero-Waste"
+                        ),
+                        ...value
+                          .split(",")
+                          .map((t) => t.trim())
+                          .filter((t) => t.length > 0),
+                        ...prev.tags.filter(
+                          (tag) =>
+                            tag === "Green Certified" ||
+                            tag === "Locally Sourced" ||
+                            tag === "Zero-Waste"
+                        ),
+                      ],
+                    }));
+                  }}
+                  placeholder="e.g. vegan, organic, fair trade, local, handmade"
+                  className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
+                />
+                <p className="text-xs text-gray-500 mt-2">
+                  Add any additional tags that describe your business. These will help users find your business in recommendations and scroll.
+                </p>
+              </div>
             </div>
 
             <div>

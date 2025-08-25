@@ -64,7 +64,17 @@ interface Business {
   website?: string;
 }
 
-// Memoized image component for better performance
+// Helper function to validate URLs
+const isValidUrl = (string: string) => {
+  try {
+    new URL(string);
+    return true;
+  } catch (_) {
+    return false;
+  }
+};
+
+// Enhanced BusinessImage component with better error handling and caching
 const BusinessImage = React.memo(
   ({
     src,
@@ -77,6 +87,38 @@ const BusinessImage = React.memo(
   }) => {
     const [isLoaded, setIsLoaded] = useState(false);
     const [error, setError] = useState(false);
+    const [retryCount, setRetryCount] = useState(0);
+    const maxRetries = 2;
+
+    // Reset states when src changes
+    useEffect(() => {
+      setIsLoaded(false);
+      setError(false);
+      setRetryCount(0);
+    }, [src]);
+
+    const handleError = useCallback(() => {
+      console.log(`Image failed to load: ${src}, retry count: ${retryCount}`);
+      
+      if (retryCount < maxRetries) {
+        // Add a small delay before retry to handle temporary network issues
+        setTimeout(() => {
+          setRetryCount(prev => prev + 1);
+          setError(false);
+          setIsLoaded(false);
+        }, 1000 * (retryCount + 1)); // Exponential backoff
+      } else {
+        setError(true);
+      }
+    }, [src, retryCount, maxRetries]);
+
+    const handleLoad = useCallback(() => {
+      setIsLoaded(true);
+      setError(false);
+    }, []);
+
+    // Create a unique key to force re-render on retry
+    const imageKey = `${src}-${retryCount}`;
 
     return (
       <div className={`relative ${className}`}>
@@ -85,15 +127,37 @@ const BusinessImage = React.memo(
             <div className="w-8 h-8 border-2 border-gray-400 border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
+        
+        {error && retryCount >= maxRetries && (
+          <div className="absolute inset-0 bg-gray-200 flex flex-col items-center justify-center">
+            <div className="text-gray-500 text-sm mb-2">Image unavailable</div>
+            <button 
+              onClick={() => {
+                setRetryCount(0);
+                setError(false);
+                setIsLoaded(false);
+              }}
+              className="px-3 py-1 bg-gray-300 text-gray-700 rounded text-xs hover:bg-gray-400"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+        
         <img
-          src={error ? PLACEHOLDER_IMAGES.noImage : src}
+          key={imageKey}
+          src={error && retryCount >= maxRetries ? PLACEHOLDER_IMAGES.noImage : src}
           alt={alt}
           className={`${className} transition-opacity duration-300 ${
             isLoaded ? "opacity-100" : "opacity-0"
           }`}
-          onLoad={() => setIsLoaded(true)}
-          onError={() => setError(true)}
+          onLoad={handleLoad}
+          onError={handleError}
           loading="lazy"
+          // Add crossOrigin if images are from external domains
+          crossOrigin="anonymous"
+          // Add referrerPolicy for better compatibility
+          referrerPolicy="no-referrer-when-downgrade"
         />
       </div>
     );
@@ -113,22 +177,86 @@ const Scroll = () => {
   const [locationPermission, setLocationPermission] = useState<
     "granted" | "denied" | "prompt"
   >("prompt");
-  // Removed unused swipeHistory state
   const containerRef = useRef<HTMLDivElement>(null);
   const [touchStart, setTouchStart] = useState(0);
   const [touchEnd, setTouchEnd] = useState(0);
 
-  // Preload next images for smoother experience
+  // Enhanced image preloading with better cache management
   useEffect(() => {
     const preloadImages = () => {
-      const nextIndex = (currentIndex + 1) % allBusinesses.length;
-      const nextBusiness = allBusinesses[nextIndex];
-      if (nextBusiness?.productImage) {
-        const img = new Image();
-        img.src = nextBusiness.productImage;
+      // Preload next 3 images instead of just 1
+      const imagesToPreload = 3;
+      const preloadPromises: Promise<void>[] = [];
+      
+      for (let i = 1; i <= imagesToPreload; i++) {
+        const nextIndex = (currentIndex + i) % allBusinesses.length;
+        const nextBusiness = allBusinesses[nextIndex];
+        
+        if (nextBusiness?.productImage && 
+            nextBusiness.productImage !== PLACEHOLDER_IMAGES.noImage &&
+            isValidUrl(nextBusiness.productImage)) {
+          const preloadPromise = new Promise<void>((resolve, reject) => {
+            const img = new Image();
+            
+            // Add timeout to prevent hanging
+            const timeoutId = setTimeout(() => {
+              console.warn(`Image preload timeout: ${nextBusiness.productImage}`);
+              reject(new Error('Timeout'));
+            }, 10000); // 10 second timeout
+            
+            img.onload = () => {
+              clearTimeout(timeoutId);
+              console.log(`✅ Preloaded image ${i}: ${nextBusiness.productImage}`);
+              resolve();
+            };
+            
+            img.onerror = (error) => {
+              clearTimeout(timeoutId);
+              console.warn(`❌ Failed to preload image ${i}: ${nextBusiness.productImage}`, error);
+              reject(error);
+            };
+            
+            // Add headers for better compatibility
+            img.crossOrigin = "anonymous";
+            img.referrerPolicy = "no-referrer-when-downgrade";
+            img.src = nextBusiness.productImage || "";
+          });
+          
+          preloadPromises.push(preloadPromise);
+        }
+      }
+      
+      // Log preloading results
+      if (preloadPromises.length > 0) {
+        Promise.allSettled(preloadPromises).then(results => {
+          const successful = results.filter(result => result.status === 'fulfilled').length;
+          const failed = results.length - successful;
+          console.log(`Preloaded ${successful}/${results.length} images (${failed} failed)`);
+        });
       }
     };
-    preloadImages();
+    
+    // Only preload if we have businesses loaded
+    if (allBusinesses.length > 0) {
+      preloadImages();
+    }
+  }, [currentIndex, allBusinesses]);
+
+  // Debug logging for current business
+  useEffect(() => {
+    // Only log if currentBusiness is defined
+    if (allBusinesses.length > 0 && currentIndex >= 0 && currentIndex < allBusinesses.length) {
+      const currentBusiness = allBusinesses[currentIndex];
+      if (currentBusiness) {
+        console.log(`Current business ${currentIndex}:`, {
+          id: currentBusiness.id,
+          productName: currentBusiness.productName,
+          hasImage: !!currentBusiness.productImage,
+          imageUrl: currentBusiness.productImage,
+          imageUrlValid: currentBusiness.productImage ? isValidUrl(currentBusiness.productImage) : false
+        });
+      }
+    }
   }, [currentIndex, allBusinesses]);
 
   // Get user location on component mount
@@ -147,6 +275,7 @@ const Scroll = () => {
     requestLocation();
   }, []);
 
+  // Enhanced business fetching with image validation
   useEffect(() => {
     const fetchBusinesses = async () => {
       try {
@@ -155,12 +284,33 @@ const Scroll = () => {
           id: doc.id,
           ...doc.data(),
         })) as Business[];
+        
+        // Validate and clean image URLs
+        const validatedBusinesses = fetched.map(business => {
+          if (business.productImage && business.productImage !== PLACEHOLDER_IMAGES.noImage) {
+            // Basic URL validation
+            try {
+              new URL(business.productImage);
+              return business;
+            } catch (error) {
+              console.warn(`Invalid image URL for ${business.productName}: ${business.productImage}`);
+              return {
+                ...business,
+                productImage: PLACEHOLDER_IMAGES.noImage
+              };
+            }
+          }
+          return business;
+        });
+        
         // Shuffle array
-        for (let i = fetched.length - 1; i > 0; i--) {
+        for (let i = validatedBusinesses.length - 1; i > 0; i--) {
           const j = Math.floor(Math.random() * (i + 1));
-          [fetched[i], fetched[j]] = [fetched[j], fetched[i]];
+          [validatedBusinesses[i], validatedBusinesses[j]] = [validatedBusinesses[j], validatedBusinesses[i]];
         }
-        setAllBusinesses(fetched);
+        
+        console.log(`Loaded ${validatedBusinesses.length} businesses`);
+        setAllBusinesses(validatedBusinesses);
       } catch (error) {
         console.error("Error fetching businesses:", error);
       }
@@ -270,11 +420,11 @@ const Scroll = () => {
   }
 
   const handleTouchStart = (e: React.TouchEvent) => {
-    setTouchStart(e.targetTouches[0].clientX); // Changed from clientY to clientX
+    setTouchStart(e.targetTouches[0].clientX);
   };
 
   const handleTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX); // Changed from clientY to clientX
+    setTouchEnd(e.targetTouches[0].clientX);
   };
 
   const handleTouchEnd = () => {
@@ -307,6 +457,47 @@ const Scroll = () => {
     }
   };
 
+  // Debug function to test all image URLs (remove in production)
+  const testAllImageUrls = async () => {
+    console.log('Testing all image URLs...');
+    const results = await Promise.allSettled(
+      allBusinesses.map(async (business, index) => {
+        if (!business.productImage || business.productImage === PLACEHOLDER_IMAGES.noImage) {
+          return { index, status: 'no-image', url: business.productImage };
+        }
+        
+        return new Promise((resolve, reject) => {
+          const img = new Image();
+          const timeoutId = setTimeout(() => reject(new Error('timeout')), 5000);
+          
+          img.onload = () => {
+            clearTimeout(timeoutId);
+            resolve({ index, status: 'success', url: business.productImage });
+          };
+          
+          img.onerror = () => {
+            clearTimeout(timeoutId);
+            reject({ index, status: 'error', url: business.productImage });
+          };
+          
+          img.crossOrigin = "anonymous";
+          img.src = business.productImage || "";
+        });
+      })
+    );
+    
+    const successful = results.filter(r => r.status === 'fulfilled').length;
+    const failed = results.filter(r => r.status === 'rejected').length;
+    
+    console.log(`Image URL Test Results: ${successful} successful, ${failed} failed`);
+    
+    results.forEach((result, index) => {
+      if (result.status === 'rejected') {
+        console.error(`❌ Business ${index} image failed:`, allBusinesses[index].productName, result.reason);
+      }
+    });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-rose-50 to-stone-100">
       {/* Location Permission Banner */}
@@ -323,6 +514,18 @@ const Scroll = () => {
           />
         )}
       </div>
+
+      {/* Debug button - remove in production */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="fixed top-4 right-4 z-50">
+          <button 
+            onClick={testAllImageUrls}
+            className="px-3 py-1 bg-blue-500 text-white rounded text-xs hover:bg-blue-600"
+          >
+            Test Images
+          </button>
+        </div>
+      )}
 
       {/* Main Swipe Area */}
       <div className="relative h-[calc(100vh-80px)] overflow-hidden">
