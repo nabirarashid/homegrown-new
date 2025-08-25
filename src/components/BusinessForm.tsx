@@ -153,7 +153,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         const storage = getStorage();
         const storageRef = ref(
           storage,
-          `businessImages/${user?.uid || "anonymous"}_${Date.now()}_${businessImageFile.name}`
+          `businessImages/${user?.uid || "anonymous"}_${Date.now()}_${
+            businessImageFile.name
+          }`
         );
         await uploadBytes(storageRef, businessImageFile);
         finalBusinessImageUrl = await getDownloadURL(storageRef);
@@ -189,21 +191,21 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
         createdAt: new Date(),
       });
 
-  // Removed setSelectedBusinessId, not used
+      // Removed setSelectedBusinessId, not used
       alert("Business submitted for approval! Now you can add products to it.");
       setShowProductForm(true);
 
       // Reset business form
       setBusinessData({
-  businessName: "",
-  description: "",
-  category: "",
-  address: "",
-  phone: "",
-  website: "",
-  hours: "",
-  tags: [],
-  customTags: "",
+        businessName: "",
+        description: "",
+        category: "",
+        address: "",
+        phone: "",
+        website: "",
+        hours: "",
+        tags: [],
+        customTags: "",
       });
       setBusinessImageFile(null);
       setBusinessImageUrl("");
@@ -236,8 +238,9 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
 
       // Determine which business to use based on current context
       const targetBusinessId = productData.businessId;
-      const targetBusinessName = existingBusinesses.find((b) => b.id === productData.businessId)
-            ?.businessName || "Unknown Business";
+      const targetBusinessName =
+        existingBusinesses.find((b) => b.id === productData.businessId)
+          ?.businessName || "Unknown Business";
 
       if (!targetBusinessId) {
         alert("Please select a business first.");
@@ -448,24 +451,26 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                     const value = e.target.value;
                     setBusinessData((prev) => ({
                       ...prev,
-                      customTags: value,
+                      customTags: value, // just update the raw input
+                    }));
+                  }}
+                  onBlur={() => {
+                    // when the input loses focus, update tags properly
+                    setBusinessData((prev) => ({
+                      ...prev,
                       tags: [
-                        ...prev.tags.filter(
-                          (tag) =>
-                            tag !== "Green Certified" &&
-                            tag !== "Locally Sourced" &&
-                            tag !== "Zero-Waste"
-                        ),
-                        ...value
-                          .split(",")
-                          .map((t) => t.trim())
-                          .filter((t) => t.length > 0),
+                        // keep non-editable special tags
                         ...prev.tags.filter(
                           (tag) =>
                             tag === "Green Certified" ||
                             tag === "Locally Sourced" ||
                             tag === "Zero-Waste"
                         ),
+                        // add parsed custom tags
+                        ...(prev.customTags || "")
+                          .split(",")
+                          .map((t) => t.trim())
+                          .filter((t) => t.length > 0),
                       ],
                     }));
                   }}
@@ -473,11 +478,12 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
                   className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
                 />
                 <p className="text-xs text-gray-500 mt-2">
-                  Add any additional tags that describe your business. These will help users find your business in recommendations and scroll.
+                  Add any additional tags that describe your business. These
+                  will help users find your business in recommendations and
+                  scroll.
                 </p>
               </div>
             </div>
-
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Address *
@@ -773,11 +779,12 @@ const BusinessForm: React.FC<BusinessFormProps> = ({ onClose }) => {
               Business Submitted Successfully!
             </h4>
             <p className="text-sm text-green-700">
-              Your business "{businessData.businessName || 'submission'}" has been sent for admin approval.
-              You can now add products to existing businesses using the "Add Product to Existing Business" tab.
+              Your business "{businessData.businessName || "submission"}" has
+              been sent for admin approval. You can now add products to existing
+              businesses using the "Add Product to Existing Business" tab.
             </p>
           </div>
-          
+
           <div className="flex gap-3 justify-center">
             <button
               onClick={() => {
