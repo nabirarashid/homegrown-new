@@ -60,6 +60,7 @@ interface Business {
   description: string;
   image?: string;
   productImage?: string;
+  website?: string;
   tags?: string[];
   rating?: number;
   location?: {
@@ -167,6 +168,17 @@ const SearchResults = () => {
   const BusinessCard = ({ business }: { business: Business }) => (
     <div className="group cursor-pointer">
       <div className="relative overflow-hidden rounded-2xl aspect-square mb-4 bg-gradient-to-br from-stone-100 to-stone-200">
+      {business.website && (
+              <div
+              onClick={() => {
+                if (business.website) {
+                  window.open(business.website, "_blank");
+                }
+              }}
+              className="absolute top-2 right-2 bg-rose-600 text-white px-2 py-1 rounded-full text-xs font-semibold z-10">
+                Visit
+              </div>
+            )}
         <img
           src={
             business.productImage ||
