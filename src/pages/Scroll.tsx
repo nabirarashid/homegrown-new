@@ -100,7 +100,7 @@ const BusinessImage = React.memo(
     const handleError = useCallback(() => {
       console.log(`Image failed to load: ${src}, retry count: ${retryCount}`);
       
-      if (retryCount < maxRetries) {
+      if (src !== PLACEHOLDER_IMAGES.noImage && retryCount < maxRetries) {
         // Add a small delay before retry to handle temporary network issues
         setTimeout(() => {
           setRetryCount(prev => prev + 1);
@@ -118,7 +118,9 @@ const BusinessImage = React.memo(
     }, []);
 
     // Create a unique key to force re-render on retry
-    const imageKey = `${src}-${retryCount}`;
+    //const imageKey = `${src}-${retryCount}`;
+
+    const finalImgSrc = error ? PLACEHOLDER_IMAGES.noImage : src;
 
     return (
       <div className={`relative ${className}`}>
@@ -145,20 +147,16 @@ const BusinessImage = React.memo(
         )}
         
         <img
-          key={imageKey}
-          src={error && retryCount >= maxRetries ? PLACEHOLDER_IMAGES.noImage : src}
-          alt={alt}
-          className={`${className} transition-opacity duration-300 ${
-            isLoaded ? "opacity-100" : "opacity-0"
-          }`}
-          onLoad={handleLoad}
-          onError={handleError}
-          loading="lazy"
-          // Add crossOrigin if images are from external domains
-          crossOrigin="anonymous"
-          // Add referrerPolicy for better compatibility
-          referrerPolicy="no-referrer-when-downgrade"
-        />
+        src={finalImgSrc}
+        alt={alt}
+        className={`${className} transition-opacity duration-500`}
+        style={{ opacity: isLoaded ? 1 : 0 }}
+        onLoad={handleLoad}
+        onError={handleError}
+        loading="lazy"
+        //crossOrigin="anonymous"
+        //referrerPolicy="no-referrer-when-downgrade"
+      />
       </div>
     );
   }
