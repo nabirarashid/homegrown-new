@@ -43,7 +43,7 @@ the trickiest part was nailing the swipe mechanics - making them feel as smooth 
 
 ```bash
 # clone the repo
-git clone https://github.com/yourusername/homegrown.git
+git clone https://github.com/nabirarashid/homegrown.git
 
 # install dependencies  
 cd homegrown
